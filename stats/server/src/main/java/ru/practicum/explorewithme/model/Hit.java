@@ -22,36 +22,36 @@ import java.time.LocalDateTime;
         name = "find_unique_stats_with_uris",
         query =
                 "SELECT app, url, count(distinct ip) as hits " +
-                        "FROM hits " +
-                        "WHERE moment BETWEEN ?1 AND ?2 AND url IN ?3 " +
-                        "GROUP BY app, url",
+                "FROM hits " +
+                "WHERE moment BETWEEN ?1 AND ?2 AND url IN ?3 " +
+                "GROUP BY app, url",
         resultSetMapping = "endpoint_statistics_dto"
 )
 @NamedNativeQuery(
         name = "find_stats_with_uris",
         query =
                 "SELECT app, url, count(ip) as hits " +
-                        "FROM hits " +
-                        "WHERE moment BETWEEN ?1 AND ?2 AND url IN ?3 " +
-                        "GROUP BY app, url",
+                "FROM hits " +
+                "WHERE moment BETWEEN ?1 AND ?2 AND url IN ?3 " +
+                "GROUP BY app, url",
         resultSetMapping = "endpoint_statistics_dto"
 )
 @NamedNativeQuery(
         name = "find_unique_stats",
         query =
                 "SELECT app, url, count(distinct ip) as hits " +
-                        "FROM hits " +
-                        "WHERE moment BETWEEN ?1 AND ?2 " +
-                        "GROUP BY app, url",
+                "FROM hits " +
+                "WHERE moment BETWEEN ?1 AND ?2 " +
+                "GROUP BY app, url",
         resultSetMapping = "endpoint_statistics_dto"
 )
 @NamedNativeQuery(
         name = "find_stats",
         query =
                 "SELECT app, url, count(ip) as hits " +
-                        "FROM hits " +
-                        "WHERE moment BETWEEN ?1 AND ?2 " +
-                        "GROUP BY app, url",
+                "FROM hits " +
+                "WHERE moment BETWEEN ?1 AND ?2 " +
+                "GROUP BY app, url",
         resultSetMapping = "endpoint_statistics_dto"
 )
 @SqlResultSetMapping(
