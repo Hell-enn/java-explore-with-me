@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewithme.HitDto;
 import ru.practicum.explorewithme.service.HitService;
 
+import java.util.List;
+
 /**
  * Класс-контроллер StatsController серверной части микросервиса
  * принимает HTTP-запросы от клиентской части, касающиеся взаимодействия
@@ -61,7 +63,7 @@ public class StatsController {
     @GetMapping("/stats")
     public ResponseEntity<Object> getStats(@RequestParam String start,
                                            @RequestParam String end,
-                                           @RequestParam(required = false) String[] uris,
+                                           @RequestParam(required = false) List<String> uris,
                                            @RequestParam(required = false, defaultValue = "false") Boolean unique) {
         log.debug("Принят запрос на получение статистики запросов на получение информации о мероприятиях\n" +
                 "start: {}\nend: {}\nuris: {}\nunique: {}", start, end, uris, unique);

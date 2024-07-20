@@ -38,7 +38,7 @@ public class HitServiceImpl implements HitService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EndpointStatisticsDto> getStatistics(String start, String end, String[] uris, Boolean unique) {
+    public List<EndpointStatisticsDto> getStatistics(String start, String end, List<String> uris, Boolean unique) {
 
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         LocalDateTime startTime = LocalDateTime.parse(start, formatter);
@@ -49,7 +49,7 @@ public class HitServiceImpl implements HitService {
 
         List<EndpointStatisticsDto> statistics;
 
-        if (uris != null && uris.length > 0) {
+        if (uris != null && !uris.isEmpty()) {
             statistics = unique ? hitJpaRepository.findUniqueRequestsAmountWithUris(startTime, endTime, uris)
                     : hitJpaRepository.findNotUniqueRequestsAmountWithUris(startTime, endTime, uris);
         } else {

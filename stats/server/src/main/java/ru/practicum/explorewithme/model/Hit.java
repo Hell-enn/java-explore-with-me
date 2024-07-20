@@ -33,7 +33,7 @@ import java.time.LocalDateTime;
                 "SELECT app, url, count(ip) as hits " +
                 "FROM hits " +
                 "WHERE moment BETWEEN ?1 AND ?2 AND url IN ?3 " +
-                "GROUP BY app, url",
+                "GROUP BY app, url order by hits desc",
         resultSetMapping = "endpoint_statistics_dto"
 )
 @NamedNativeQuery(

@@ -40,5 +40,5 @@ public interface HitService {
      * @return List<EndpointStatisticsDto> (список объектов со статистической информацией о запросах
      * к эндпоинтам uris в период с момента start до момента end)
      */
-    List<EndpointStatisticsDto> getStatistics(String start, String end, String[] uris, Boolean unique);
+    List<EndpointStatisticsDto> getStatistics(String start, String end, List<String> uris, Boolean unique);
 }

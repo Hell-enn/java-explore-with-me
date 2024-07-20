@@ -11,10 +11,10 @@ import java.util.List;
 
 public interface HitJpaRepository  extends PagingAndSortingRepository<Hit, Long>, CrudRepository<Hit, Long> {
     @Query(name =  "find_unique_stats_with_uris", nativeQuery = true)
-    List<EndpointStatisticsDto> findUniqueRequestsAmountWithUris(LocalDateTime start, LocalDateTime end, String[] usris);
+    List<EndpointStatisticsDto> findUniqueRequestsAmountWithUris(LocalDateTime start, LocalDateTime end, List<String> usris);
 
     @Query(name =  "find_stats_with_uris", nativeQuery = true)
-    List<EndpointStatisticsDto> findNotUniqueRequestsAmountWithUris(LocalDateTime start, LocalDateTime end, String[] usris);
+    List<EndpointStatisticsDto> findNotUniqueRequestsAmountWithUris(LocalDateTime start, LocalDateTime end, List<String> usris);
 
     @Query(name =  "find_unique_stats", nativeQuery = true)
     List<EndpointStatisticsDto> findUniqueRequestsAmountWithoutUris(LocalDateTime start, LocalDateTime end);
