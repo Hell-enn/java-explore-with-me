@@ -45,7 +45,7 @@ public class HitServiceImpl implements HitService {
         LocalDateTime endTime = LocalDateTime.parse(end, formatter);
 
         if (startTime.isAfter(endTime) || startTime.equals(endTime))
-            throw new BadRequestException("Дата конца не должна предшествовать лате начала!");
+            throw new BadRequestException("Дата конца не должна предшествовать дате начала!");
 
         List<EndpointStatisticsDto> statistics;
 
