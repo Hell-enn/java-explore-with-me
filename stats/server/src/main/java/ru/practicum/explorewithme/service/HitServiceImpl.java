@@ -12,7 +12,10 @@ import ru.practicum.explorewithme.repository.HitJpaRepository;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -44,7 +47,7 @@ public class HitServiceImpl implements HitService {
         LocalDateTime startTime = LocalDateTime.parse(start, formatter);
         LocalDateTime endTime = LocalDateTime.parse(end, formatter);
 
-        if (startTime.isAfter(endTime) || startTime.equals(endTime))
+        if (startTime.isAfter(endTime))
             throw new BadRequestException("Дата конца не должна предшествовать дате начала!");
 
         List<EndpointStatisticsDto> statistics;
@@ -57,7 +60,15 @@ public class HitServiceImpl implements HitService {
                     : hitJpaRepository.findNotUniqueRequestsAmountWithoutUris(startTime, endTime);
         }
 
+        Map<String, EndpointStatisticsDto> statsToCheck = new HashMap<>();
+        if (uris != null && statistics.size() < uris.size()) {
+            statistics.forEach(stat -> statsToCheck.put(stat.getUri(), stat));
+            uris.forEach(uri -> {
+                statsToCheck.put(uri, statsToCheck.getOrDefault(uri, new EndpointStatisticsDto("ewm-main-service", uri, 0L)));
+            });
+        }
+
         log.debug("Получена статистика с {} до {} по эндпоинтам {}", start, end, uris);
-        return statistics;
+        return new ArrayList<>(statsToCheck.values());
     }
 }

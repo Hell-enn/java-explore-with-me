@@ -30,10 +30,11 @@ import java.time.LocalDateTime;
 @NamedNativeQuery(
         name = "find_stats_with_uris",
         query =
-                "SELECT app, url, count(ip) as hits " +
+                "SELECT app, url, count(*) as hits " +
                 "FROM hits " +
                 "WHERE moment BETWEEN ?1 AND ?2 AND url IN ?3 " +
-                "GROUP BY app, url order by hits desc",
+                "GROUP BY app, url " +
+                "order by hits desc",
         resultSetMapping = "endpoint_statistics_dto"
 )
 @NamedNativeQuery(
