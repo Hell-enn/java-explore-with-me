@@ -12,11 +12,11 @@ import java.util.Optional;
 
 public interface EventRepository extends PagingAndSortingRepository<Event, Long>, CrudRepository<Event, Long> {
     @Query(value = "select e.* " +
-            "from events e " +
-            "join compilations_events ce on e.event_id = ce.event_id " +
-            "join compilations c on ce.compilation_id = c.compilation_id " +
-            "where c.compilation_id = ?1 " +
-            "order by c.compilation_id", nativeQuery = true)
+                    "from events e " +
+                    "join compilations_events ce on e.event_id = ce.event_id " +
+                    "join compilations c on ce.compilation_id = c.compilation_id " +
+                    "where c.compilation_id = ?1 " +
+                    "order by c.compilation_id", nativeQuery = true)
     List<Event> findEventsByCompilation(Long compId);
 
     @Query(value = "select e.event_id " +
