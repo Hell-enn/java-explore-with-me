@@ -1,5 +1,5 @@
 services:
-  stats:
+  stats-server:
     build: ./stats
     restart: on-failure
     image: stats
@@ -24,7 +24,7 @@ services:
       - POSTGRES_USER=dbuser
       - POSTGRES_DB=explorewithmestats
 
-  main:
+  main-server:
     build: ./main
     restart: on-failure
     image: main
