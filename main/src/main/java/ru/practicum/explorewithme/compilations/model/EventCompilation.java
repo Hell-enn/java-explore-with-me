@@ -1,12 +1,11 @@
 package ru.practicum.explorewithme.compilations.model;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.practicum.explorewithme.events.model.Event;
-
-import javax.persistence.*;
 
 @Entity
 @Table(name = "compilations_events", schema = "public")

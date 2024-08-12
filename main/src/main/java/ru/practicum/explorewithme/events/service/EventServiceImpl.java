@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.events.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +26,6 @@ import ru.practicum.explorewithme.requests.model.ParticipationRequest;
 import ru.practicum.explorewithme.requests.repository.ParticipationRequestRepository;
 import ru.practicum.explorewithme.users.repository.UserRepository;
 
-import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;

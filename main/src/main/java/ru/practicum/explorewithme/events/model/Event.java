@@ -8,7 +8,7 @@ import ru.practicum.explorewithme.categories.model.Category;
 import ru.practicum.explorewithme.events.dto.enums.State;
 import ru.practicum.explorewithme.users.model.User;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity

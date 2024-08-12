@@ -8,7 +8,7 @@ import ru.practicum.explorewithme.requests.dto.enums.Status;
 import ru.practicum.explorewithme.events.model.Event;
 import ru.practicum.explorewithme.users.model.User;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,7 +29,6 @@ public class ParticipationRequest {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
-    @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private Status status;
 }

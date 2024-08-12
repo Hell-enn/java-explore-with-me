@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.users.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -10,7 +11,6 @@ import ru.practicum.explorewithme.exceptions.BadRequestException;
 import ru.practicum.explorewithme.users.dto.NewUserRequest;
 import ru.practicum.explorewithme.users.service.UserService;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @RestController

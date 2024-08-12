@@ -303,12 +303,14 @@ public class EventMapper {
         Map<Long, Long> views = new HashMap<>();
         endpointStatisticsDtos.forEach(endpointStatisticsDto -> {
             String uri = endpointStatisticsDto.getUri();
-            if (uri.startsWith("["))
-                uri = uri.substring(1);
-            if (uri.endsWith("]"))
-                uri = uri.substring(0, uri.length() - 1);
-            Long eventId = Long.parseLong(uri.substring(uri.lastIndexOf('/') + 1));
-            views.put(eventId, endpointStatisticsDto.getHits());
+            if (!uri.equals("[]")) {
+                if (uri.startsWith("["))
+                    uri = uri.substring(1);
+                if (uri.endsWith("]"))
+                    uri = uri.substring(0, uri.length() - 1);
+                Long eventId = Long.parseLong(uri.substring(uri.lastIndexOf('/') + 1));
+                views.put(eventId, endpointStatisticsDto.getHits());
+            }
         });
         return views;
     }

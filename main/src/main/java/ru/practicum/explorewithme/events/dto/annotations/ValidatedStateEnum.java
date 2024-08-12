@@ -1,6 +1,7 @@
 package ru.practicum.explorewithme.events.dto.annotations;
 
-import javax.validation.Payload;
+
+import jakarta.validation.Payload;
 
 public @interface ValidatedStateEnum {
     String[] acceptedValues();

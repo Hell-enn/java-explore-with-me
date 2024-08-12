@@ -1,8 +1,8 @@
 package ru.practicum.explorewithme.events.dto.annotations;
 
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 import ru.practicum.explorewithme.events.dto.enums.StateAction;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

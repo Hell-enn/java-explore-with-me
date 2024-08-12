@@ -1,10 +1,10 @@
 package ru.practicum.explorewithme.requests.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.*;
 import ru.practicum.explorewithme.requests.dto.annotations.ValidatedStatusEnum;
 
-import javax.validation.constraints.PastOrPresent;
 import java.time.LocalDateTime;
 
 @Data

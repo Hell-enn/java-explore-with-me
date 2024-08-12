@@ -1,9 +1,9 @@
 package ru.practicum.explorewithme.events.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
-import javax.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Data

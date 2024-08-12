@@ -1,6 +1,7 @@
 package ru.practicum.explorewithme.exceptions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,6 @@ import ru.practicum.explorewithme.events.controller.PublicEventController;
 import ru.practicum.explorewithme.requests.controller.PrivateParticipationRequestController;
 import ru.practicum.explorewithme.users.controller.AdminUserController;
 
-import javax.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -110,7 +110,7 @@ public class ErrorHandler {
 
 
     @ExceptionHandler
-    public ResponseEntity<Object>  handleSqlException(DataIntegrityViolationException e) {
+    public ResponseEntity<Object>  handleDataIntegrityViolation(DataIntegrityViolationException e) {
         ApiError apiError = ApiError.builder()
                 .errors(List.of(""))
                 .message(e.getMessage())
@@ -163,12 +163,12 @@ public class ErrorHandler {
                 .errors(List.of(""))
                 .message(e.getMessage())
                 .reason("Incorrect HTTP-request")
-                .status(HttpStatus.BAD_REQUEST.toString())
+                .status(HttpStatus.CONFLICT.toString())
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
+                .status(HttpStatus.CONFLICT)
                 .body(apiError);
     }
 

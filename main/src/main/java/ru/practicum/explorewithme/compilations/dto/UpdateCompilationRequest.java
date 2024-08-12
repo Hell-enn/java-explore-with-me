@@ -1,8 +1,8 @@
 package ru.practicum.explorewithme.compilations.dto;
 
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import javax.validation.constraints.Size;
 import java.util.List;
 
 @Data

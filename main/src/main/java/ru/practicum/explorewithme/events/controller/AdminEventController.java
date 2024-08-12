@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.events.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -10,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewithme.events.dto.UpdateEventAdminRequest;
 import ru.practicum.explorewithme.events.service.EventService;
 
-import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
 

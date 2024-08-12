@@ -1,11 +1,11 @@
 package ru.practicum.explorewithme.events.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import ru.practicum.explorewithme.events.dto.*;
 import ru.practicum.explorewithme.requests.dto.EventRequestStatusUpdateRequest;
 import ru.practicum.explorewithme.requests.dto.EventRequestStatusUpdateResult;
 import ru.practicum.explorewithme.requests.dto.ParticipationRequestDto;
 
-import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 

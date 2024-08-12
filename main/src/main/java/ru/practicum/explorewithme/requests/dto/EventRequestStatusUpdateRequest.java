@@ -10,6 +10,6 @@ import java.util.List;
 @NoArgsConstructor
 public class EventRequestStatusUpdateRequest {
     private List<Long> requestIds;
-    @ValidatedStatusEnum(acceptedValues = {"PENDING", "REJECTED"})
+    @ValidatedStatusEnum(acceptedValues = {"REJECTED", "CONFIRMED"})
     private String status;
 }

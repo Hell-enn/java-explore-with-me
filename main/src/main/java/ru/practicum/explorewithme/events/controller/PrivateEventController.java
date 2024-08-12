@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.events.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -10,8 +11,6 @@ import ru.practicum.explorewithme.events.dto.NewEventDto;
 import ru.practicum.explorewithme.events.dto.UpdateEventUserRequest;
 import ru.practicum.explorewithme.events.service.EventService;
 import ru.practicum.explorewithme.requests.dto.EventRequestStatusUpdateRequest;
-
-import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/users/{userId}/events")
