@@ -36,7 +36,7 @@ public class StatsClient {
     @Autowired
     public StatsClient(RestTemplateBuilder builder) {
         rest = builder
-                .uriTemplateHandler(new DefaultUriBuilderFactory("http://stats:9090"))
+                .uriTemplateHandler(new DefaultUriBuilderFactory("http://stats-server:9090"))
                 .requestFactory(ClientHttpRequestFactory.class)
                 .build();
     }
