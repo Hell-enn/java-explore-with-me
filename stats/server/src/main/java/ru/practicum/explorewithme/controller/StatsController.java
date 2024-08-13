@@ -3,6 +3,7 @@ package ru.practicum.explorewithme.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -38,11 +39,9 @@ public class StatsController {
      * или код ответа, отличный от 2**, с описанием причины возникновения ошибки)
      */
     @PostMapping("/hit")
-    public ResponseEntity<HitDto> postHit(@RequestBody HitDto hitDto) {
+    public ResponseEntity<Object> postHit(@RequestBody HitDto hitDto) {
         log.debug("Принят запрос на добавление информации о запросе о мероприятии\n{}", hitDto);
-        HitDto hitDto1 = hitService.postHit(hitDto);
-        ResponseEntity<HitDto> test = ResponseEntity.accepted().body(hitDto1);
-        return test;
+        return new ResponseEntity<>(hitService.postHit(hitDto), HttpStatus.CREATED);
     }
 
 
@@ -71,6 +70,6 @@ public class StatsController {
         log.debug("Принят запрос на получение статистики запросов на получение информации о мероприятиях\n" +
                 "start: {}\nend: {}\nuris: {}\nunique: {}", start, end, uris, unique);
 
-        return ResponseEntity.ok().body(hitService.getStatistics(start, end, uris, unique));
+        return new ResponseEntity<>(hitService.getStatistics(start, end, uris, unique), HttpStatus.OK);
     }
 }

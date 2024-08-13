@@ -70,7 +70,7 @@ public class CompilationMapper {
                                 uri = uri.substring(1);
                             if (uri.endsWith("]"))
                                 uri = uri.substring(0, uri.length() - 1);
-                            Long eventId = Long.parseLong(uri.substring(uri.lastIndexOf("/") + 1));
+                            Long eventId = uri.endsWith("events") ? 0 : Long.parseLong(uri.substring(uri.lastIndexOf("/") + 1));
                             idsWithHits.put(eventId, endpointStatisticsDto.getHits());
                         }
                     });

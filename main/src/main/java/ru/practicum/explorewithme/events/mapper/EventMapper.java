@@ -148,11 +148,15 @@ public class EventMapper {
         LocalDateTime start = event.getPublishedOn() == null ? LocalDateTime.now() : event.getPublishedOn();
         LocalDateTime end = event.getEventDate() == null ? LocalDateTime.now().plusYears(100) : event.getEventDate();
 
-        ResponseEntity<Object> objResults = statsClient.getPeriodUrisStats(start, end, List.of("/events/" + event.getId()));
+        ResponseEntity<Object> objResults = statsClient.getPeriodUrisUniqueStats(start, end, List.of("/events/" + event.getId()), true);
         List<EndpointStatisticsDto> endpointStatisticsDtos = objectMapper.readValue(
                 objectMapper.writeValueAsString(objResults.getBody()), new TypeReference<>() {});
 
-        EndpointStatisticsDto endpointStatisticsDto = endpointStatisticsDtos.get(0);
+        EndpointStatisticsDto endpointStatisticsDto;
+        if (endpointStatisticsDtos != null && !endpointStatisticsDtos.isEmpty())
+            endpointStatisticsDto = endpointStatisticsDtos.get(0);
+        else
+            endpointStatisticsDto = new EndpointStatisticsDto("ewm-main-service", "/event/" + event.getId(), 0L);
         Long views = endpointStatisticsDto == null ? 0 : endpointStatisticsDto.getHits();
         return eventToEventFullDto(event, views);
     }

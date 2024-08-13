@@ -127,7 +127,7 @@ public class StatsClient {
      * @return ResponseEntity<Object> - ответ сервера, содержащий либо код ответа 2** и
      * объект со статистической информацией, либо иной код ответа с сообщением об ошибке.
      */
-    public ResponseEntity<Object> getPeriodUrisUniqueStats(LocalDateTime start, LocalDateTime end, String[] uris, Boolean unique) {
+    public ResponseEntity<Object> getPeriodUrisUniqueStats(LocalDateTime start, LocalDateTime end, List<String> uris, Boolean unique) {
 
         Map<String, Object> parameters = Map.of(
                 "start", start.format(formatter),

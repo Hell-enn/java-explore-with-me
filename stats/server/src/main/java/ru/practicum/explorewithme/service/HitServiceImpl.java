@@ -8,6 +8,7 @@ import ru.practicum.explorewithme.EndpointStatisticsDto;
 import ru.practicum.explorewithme.HitDto;
 import ru.practicum.explorewithme.exception.BadRequestException;
 import ru.practicum.explorewithme.mapper.HitMapper;
+import ru.practicum.explorewithme.model.Hit;
 import ru.practicum.explorewithme.repository.HitJpaRepository;
 
 import java.time.LocalDateTime;
@@ -35,7 +36,9 @@ public class HitServiceImpl implements HitService {
     @Transactional
     public HitDto postHit(HitDto hitDto) {
         log.debug("Сохранение информации о запросе о мероприятии c эндпоинтом {}", hitDto.getUri());
-        return hitMapper.toHitDto(hitJpaRepository.save(hitMapper.toHit(hitDto)));
+        Hit hit = hitMapper.toHit(hitDto);
+        Hit savedHit = hitJpaRepository.save(hit);
+        return hitMapper.toHitDto(savedHit);
     }
 
 
@@ -52,23 +55,34 @@ public class HitServiceImpl implements HitService {
 
         List<EndpointStatisticsDto> statistics;
 
-        if (uris != null && !uris.isEmpty()) {
-            statistics = unique ? hitJpaRepository.findUniqueRequestsAmountWithUris(startTime, endTime, uris)
-                    : hitJpaRepository.findNotUniqueRequestsAmountWithUris(startTime, endTime, uris);
+        List<String> correctedUris = new ArrayList<>();
+        uris.forEach(uri -> {
+            if (!uri.equals("[]")) {
+                if (uri.startsWith("["))
+                    uri = uri.substring(1);
+                if (uri.endsWith("]"))
+                    uri = uri.substring(0, uri.length() - 1);
+                correctedUris.add(uri);
+            }
+        });
+
+        if (!correctedUris.isEmpty()) {
+            statistics = unique ? hitJpaRepository.findUniqueRequestsAmountWithUris(startTime, endTime, correctedUris)
+                    : hitJpaRepository.findNotUniqueRequestsAmountWithUris(startTime, endTime, correctedUris);
         } else {
             statistics =  unique ? hitJpaRepository.findUniqueRequestsAmountWithoutUris(startTime, endTime)
                     : hitJpaRepository.findNotUniqueRequestsAmountWithoutUris(startTime, endTime);
         }
 
         Map<String, EndpointStatisticsDto> statsToCheck = new HashMap<>();
-        if (uris != null && statistics.size() < uris.size()) {
-            statistics.forEach(stat -> statsToCheck.put(stat.getUri(), stat));
-            uris.forEach(uri -> {
-                statsToCheck.put(uri, statsToCheck.getOrDefault(uri, new EndpointStatisticsDto("ewm-main-service", uri, 0L)));
-            });
-        }
+        statistics.forEach(stat -> statsToCheck.put(stat.getUri(), stat));
+        correctedUris.forEach(correctedUri -> {
+            if (!correctedUri.equals("[]")) {
+                statsToCheck.put(correctedUri, statsToCheck.getOrDefault(correctedUri, new EndpointStatisticsDto("ewm-main-service", correctedUri, 0L)));
+            }
+        });
 
-        log.debug("Получена статистика с {} до {} по эндпоинтам {}", start, end, uris);
+        log.debug("Получена статистика с {} до {} по эндпоинтам {}", start, end, correctedUris);
         return new ArrayList<>(statsToCheck.values());
     }
 }

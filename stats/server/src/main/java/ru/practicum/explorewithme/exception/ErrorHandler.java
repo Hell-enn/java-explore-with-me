@@ -1,9 +1,12 @@
 package ru.practicum.explorewithme.exception;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -38,13 +41,25 @@ public class ErrorHandler {
 
 
     @ExceptionHandler
-    public ResponseEntity<Object> handleUnsupportedOperationException(final UnsupportedOperationException e) {
-        return new ResponseEntity<>(e.getMessage(), new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 
 
     @ExceptionHandler
-    public ResponseEntity<Object> handleAnyError(final Throwable e) {
-        return new ResponseEntity<>(e.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+
+    @ExceptionHandler
+    public ResponseEntity<Object> handleConstraintViolationException(ConstraintViolationException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+
+    @ExceptionHandler
+    public ResponseEntity<Object> handleJsonProcessingExceptionException(JsonProcessingException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 }

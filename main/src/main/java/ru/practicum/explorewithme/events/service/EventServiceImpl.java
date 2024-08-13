@@ -406,10 +406,8 @@ Iterable<Event> test = eventRepository.findAll();
                 .findPublicEvent(eventId, State.PUBLISHED.toString())
                 .orElseThrow(() -> new NotFoundException("Опубликованное событие с id = " + eventId + " не найдено!"));
 
-        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(event);
-
         statsClient.postHit(request.getRequestURI(), request.getRemoteAddr(), LocalDateTime.now());
-        eventFullDto.setViews(eventFullDto.getViews() + 1);
+        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(event);
 
         log.debug("Получение события с id = {} прошло успешно!\n{}", eventId, eventFullDto);
 
