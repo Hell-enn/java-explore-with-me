@@ -12,5 +12,8 @@ public interface EventCompilationRepository
     @Query(value = "select event_id from compilations_events where compilation_id = ?1", nativeQuery = true)
     List<Long> findEventIdsByCompId(Long compId);
 
+    @Query(value = "select * from compilations_events where compilation_id in ?1", nativeQuery = true)
+    List<EventCompilation> findEventCompilationsByCompIds(List<Long> compIds);
+
     void deleteByCompilationId(Long compilationId);
 }

@@ -1,15 +1,25 @@
 package ru.practicum.explorewithme.events.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.*;
+import ru.practicum.explorewithme.categories.model.Category;
 import ru.practicum.explorewithme.categories.repository.CategoryRepository;
+import ru.practicum.explorewithme.compilations.dto.RequestAmountDto;
+import ru.practicum.explorewithme.events.dto.EndpointStatisticsDto;
 import ru.practicum.explorewithme.events.dto.enums.State;
 import ru.practicum.explorewithme.events.dto.enums.StateAction;
+import ru.practicum.explorewithme.events.model.Location;
+import ru.practicum.explorewithme.events.repository.LocationRepository;
 import ru.practicum.explorewithme.requests.dto.enums.Status;
 import ru.practicum.explorewithme.events.dto.*;
 import ru.practicum.explorewithme.events.mapper.EventMapper;
@@ -24,6 +34,7 @@ import ru.practicum.explorewithme.requests.dto.ParticipationRequestDto;
 import ru.practicum.explorewithme.requests.mapper.ParticipationRequestMapper;
 import ru.practicum.explorewithme.requests.model.ParticipationRequest;
 import ru.practicum.explorewithme.requests.repository.ParticipationRequestRepository;
+import ru.practicum.explorewithme.users.model.User;
 import ru.practicum.explorewithme.users.repository.UserRepository;
 
 import java.time.LocalDateTime;
@@ -39,16 +50,17 @@ public class EventServiceImpl implements EventService {
     private final UserRepository userRepository;
     private final ParticipationRequestRepository participationRequestRepository;
     private final CategoryRepository categoryRepository;
+    private final LocationRepository locationRepository;
     private final EventMapper eventMapper;
     private final ParticipationRequestMapper participationRequestMapper;
     private final StatsClient statsClient;
+    private final ObjectMapper objectMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventShortDto> getUserEvents(Long userId, Integer from, Integer size) {
 
-        userRepository
-                .findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден!"));
+        findUser(userId);
 
         int amountOfEvents = eventRepository.findUserEventsAmount(userId);
         int pageNum = amountOfEvents > from ? from / size : 0;
@@ -58,8 +70,18 @@ public class EventServiceImpl implements EventService {
                 .toOptional()
                 .orElseThrow(() -> new RuntimeException("Ошибка преобразования страницы!"));
 
+        List<Event> events = eventRepository.findByUserIdOrderByEventDate(userId, page);
+        List<Long> eventIds = new ArrayList<>();
+        events.forEach(event -> eventIds.add(event.getId()));
+        Map<Long, Long> requestAmounts = findRequestAmountList(eventIds);
+
+        List<EndpointStatisticsDto> endpointStatisticsDtos = getUniqueStats(
+                LocalDateTime.now().minusYears(100),
+                LocalDateTime.now().plusYears(100),
+                events
+        );
         List<EventShortDto> eventShortDtos = eventMapper
-                .eventToEventShortDtoList(eventRepository.findByUserIdOrderByEventDate(userId, page));
+                .eventToEventShortDtoList(events, requestAmounts, endpointStatisticsDtos);
         log.debug("Возвращение списка событий пользователя с id = {} с позиции {} в количестве {}\n{}",
                 userId, from, size, eventShortDtos);
 
@@ -69,13 +91,27 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
+    @Transactional
     public EventFullDto postEvent(NewEventDto newEventDto, Long userId) {
 
         if (LocalDateTime.now().isAfter(newEventDto.getEventDate().minusHours(2)))
             throw new ForbiddenException("Время начала мероприятия не может быть раньше, чем за 2 часа до настоящего момента!");
 
-        EventFullDto eventFullDto = eventMapper
-                .eventToEventFullDto(eventRepository.save(eventMapper.newEventDtoToEvent(newEventDto, userId)));
+        Category category = findCategory(newEventDto.getCategory());
+        Location location = findLocation(newEventDto.getLocation());
+        User user = findUser(userId);
+
+        Event newEvent = eventRepository.save(eventMapper.newEventDtoToEvent(newEventDto, category, location, user));
+
+        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+                LocalDateTime.now().minusYears(100),
+                LocalDateTime.now().plusYears(100),
+                List.of(newEvent)
+        );
+
+        Long requestAmount = Long.valueOf(findRequestAmount(newEvent.getId()));
+        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(newEvent, endpointStatisticsDto, requestAmount);
+
         log.debug("Публикация события пользователем с id = {} прошла успешно!\n{}", userId, eventFullDto);
 
         return eventFullDto;
@@ -83,17 +119,23 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public EventFullDto getEvent(Long userId, Long eventId) {
 
-        userRepository
-                .findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден!"));
+        findUser(userId);
 
         Event event = eventRepository.findByEventIdAndUserId(eventId, userId);
         if (event == null)
             throw new NotFoundException("Событие с id = " + eventId + " пользователя с id = " + userId + " не найдено!");
 
-        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(event);
+        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+                LocalDateTime.now().minusYears(100),
+                LocalDateTime.now().plusYears(100),
+                List.of(event)
+        );
+        Long requestAmount = Long.valueOf(findRequestAmount(event.getId()));
+
+        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(event, endpointStatisticsDto, requestAmount);
         log.debug("Получение пользователем с id = {} события с id = {} прошло успешно!\n{}", userId, eventId, eventFullDto);
 
         return eventFullDto;
@@ -101,11 +143,10 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
+    @Transactional
     public EventFullDto patchEventByUser(Long userId, Long eventId, UpdateEventUserRequest updateEventUserRequest) {
 
-        userRepository
-                .findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден!"));
+        findUser(userId);
 
         Event event = eventRepository.findByEventIdAndUserId(eventId, userId);
         if (event == null)
@@ -120,8 +161,24 @@ public class EventServiceImpl implements EventService {
             if (LocalDateTime.now().isAfter(eventDate.minusHours(2)))
                 throw new ConflictException("Нельзя изменить время начала мероприятия на время меньшее, чем текущий момент!");
 
-        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(
-                eventRepository.save(eventMapper.updateEventUser(updateEventUserRequest, event)));
+
+        Long catId = updateEventUserRequest.getCategory();
+        Category category = catId == null ? null : findCategory(catId);
+
+        LocationDto locationDto = updateEventUserRequest.getLocation();
+        Location location = locationDto == null ? null : findLocation(locationDto);
+
+        Event updatedEvent = eventRepository
+                .save(eventMapper.updateEventUser(updateEventUserRequest, event, category, location));
+
+        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+                LocalDateTime.now().minusYears(100),
+                LocalDateTime.now().plusYears(100),
+                List.of(event)
+        );
+        Long requestAmount = Long.valueOf(findRequestAmount(event.getId()));
+
+        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(updatedEvent, endpointStatisticsDto, requestAmount);
         log.debug("Обновление пользователем с id = {} события с id = {} прошло успешно!\n{}", userId, eventId, eventFullDto);
 
         return eventFullDto;
@@ -129,11 +186,10 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<ParticipationRequestDto> getUserEventRequests(Long userId, Long eventId) {
 
-        userRepository
-                .findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден!"));
+        findUser(userId);
 
         Event event = eventRepository.findByEventIdAndUserId(eventId, userId);
         if (event == null)
@@ -151,6 +207,7 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
+    @Transactional
     public EventRequestStatusUpdateResult patchUserEventRequest(Long userId,
                                                                 Long eventId,
                                                                 EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
@@ -240,6 +297,7 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventFullDto> getAdminEvents(List<Long> users,
                                   List<String> states,
                                   List<Long> categories,
@@ -248,7 +306,7 @@ public class EventServiceImpl implements EventService {
                                   Integer from,
                                   Integer size) {
 
-        if (users == null || users.isEmpty())
+        if (users == null || users.isEmpty() || (users.size() == 1 && users.get(0) == 0))
             users = userRepository.findUserIds();
 
         if (states == null || states.isEmpty()) {
@@ -257,7 +315,7 @@ public class EventServiceImpl implements EventService {
             states = finalStates;
         }
 
-        if (categories == null || categories.isEmpty())
+        if (categories == null || categories.isEmpty() || (categories.size() == 1 && categories.get(0) == 0))
             categories = categoryRepository.findCategoryIds();
 
         if (rangeStart == null)
@@ -275,7 +333,17 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new RuntimeException("Ошибка преобразования страницы!"));
 
         List<Event> events = eventRepository.findAdminEvents(users, states, categories, rangeStart, rangeEnd, page);
-        List<EventFullDto> eventFullDtos = eventMapper.eventToEventFullDtoList(events);
+        List<Long> eventIds = new ArrayList<>();
+        events.forEach(event -> eventIds.add(event.getId()));
+
+        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+                LocalDateTime.now().minusYears(100),
+                LocalDateTime.now().plusYears(100),
+                events
+        );
+        Map<Long, Long> requestAmount = findRequestAmountList(eventIds);
+
+        List<EventFullDto> eventFullDtos = eventMapper.eventToEventFullDtoList(events, endpointStatisticsDto, requestAmount);
         log.debug("Возвращение списка событий пользователей с id = {} в состояниях {} категорий {} с момента {} до момента " +
                 "{} с позиции {} в количестве {}", users, states, categories, rangeStart, rangeEnd, from, size);
 
@@ -284,6 +352,7 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
+    @Transactional
     public EventFullDto patchEventByAdmin(Long eventId, UpdateEventAdminRequest updateEventAdminRequest) {
 
         Event event = eventRepository
@@ -305,8 +374,25 @@ public class EventServiceImpl implements EventService {
                 throw new ConflictException("Статус события при его отклонении не может быть PUBLISHED!");
         }
 
-        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(
-                eventRepository.save(eventMapper.updateEventAdmin(updateEventAdminRequest, event)));
+        Long catId = updateEventAdminRequest.getCategory();
+        Category category = catId == null ? null : findCategory(catId);
+
+        LocationDto locationDto = updateEventAdminRequest.getLocation();
+        Location location = locationDto == null ? null : findLocation(locationDto);
+
+        Event updatedEvent = eventRepository
+                .save(eventMapper
+                        .updateEventAdmin(updateEventAdminRequest, event, category, location));
+
+        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+                LocalDateTime.now().minusYears(100),
+                LocalDateTime.now().plusYears(100),
+                List.of(event)
+        );
+        Long requestAmount = Long.valueOf(findRequestAmount(event.getId()));
+
+        EventFullDto eventFullDto = eventMapper
+                .eventToEventFullDto(updatedEvent, endpointStatisticsDto, requestAmount);
         log.debug("Обновление события с id = {} прошло успешно!\n{}", eventId, eventFullDto);
 
         return eventFullDto;
@@ -314,6 +400,7 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventFullDto> getPublicEvents(String text,
                                               List<Long> categories,
                                               Boolean paid,
@@ -379,7 +466,16 @@ Iterable<Event> test = eventRepository.findAll();
             }
         }
 
-        List<EventFullDto> eventFullDtos = eventMapper.eventToEventFullDtoList(events);
+        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+                LocalDateTime.now().minusYears(100),
+                LocalDateTime.now().plusYears(100),
+                events
+        );
+        List<Long> eventIds = new ArrayList<>();
+        events.forEach(event -> eventIds.add(event.getId()));
+        Map<Long, Long> requestAmounts = findRequestAmountList(eventIds);
+
+        List<EventFullDto> eventFullDtos = eventMapper.eventToEventFullDtoList(events, endpointStatisticsDto, requestAmounts);
         if (onlyAvailable)
             eventFullDtos = eventFullDtos
                                     .stream()
@@ -401,16 +497,73 @@ Iterable<Event> test = eventRepository.findAll();
 
 
     @Override
+    @Transactional(readOnly = true)
     public EventFullDto getPublicEvent(Long eventId, HttpServletRequest request) {
         Event event = eventRepository
                 .findPublicEvent(eventId, State.PUBLISHED.toString())
                 .orElseThrow(() -> new NotFoundException("Опубликованное событие с id = " + eventId + " не найдено!"));
 
         statsClient.postHit(request.getRequestURI(), request.getRemoteAddr(), LocalDateTime.now());
-        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(event);
+
+        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+                LocalDateTime.now().minusYears(100),
+                LocalDateTime.now().plusYears(100),
+                List.of(event)
+        );
+        Long requestAmount = Long.valueOf(findRequestAmount(event.getId()));
+
+        EventFullDto eventFullDto = eventMapper.eventToEventFullDto(event, endpointStatisticsDto, requestAmount);
 
         log.debug("Получение события с id = {} прошло успешно!\n{}", eventId, eventFullDto);
 
         return eventFullDto;
+    }
+
+
+    private Category findCategory(Long catId) {
+        return categoryRepository
+                .findById(catId)
+                .orElseThrow(() -> new NotFoundException("Категория с id = " + catId + " не найдена!"));
+    }
+
+
+    private Location findLocation(LocationDto locationDto) {
+        List<Location> locationList = locationRepository.findByLatAndLon(locationDto.getLat(), locationDto.getLon());
+        return !locationList.isEmpty() ?
+                        locationList.get(0) :
+                        locationRepository.save(new Location(null, locationDto.getLat(), locationDto.getLon()));
+    }
+
+
+    private User findUser(Long userId) {
+        return userRepository
+                .findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден!"));
+    }
+
+
+    private Integer findRequestAmount(Long eventId) {
+        return participationRequestRepository.findRequestAmount(eventId, Status.CONFIRMED.toString());
+    }
+
+
+    private Map<Long, Long> findRequestAmountList(List<Long> eventIds) {
+        Map<Long, Long> requestAmounts = new HashMap<>();
+        List<RequestAmountDto> requestAmountDtos = participationRequestRepository.findRequestAmount(eventIds);
+        requestAmountDtos.forEach(requestAmountDto -> requestAmounts.put(
+                requestAmountDto.getEventId(),
+                requestAmountDto.getRequestAmount()));
+        return requestAmounts;
+    }
+
+
+    @SneakyThrows
+    private List<EndpointStatisticsDto> getUniqueStats(LocalDateTime start, LocalDateTime end, List<Event> events) {
+        List<String> uris = new ArrayList<>();
+        events.forEach(event -> uris.add("/events/" + event.getId()));
+
+        ResponseEntity<Object> objResults = statsClient
+                .getPeriodUrisUniqueStats(start, end, uris, true);
+        return objectMapper.readValue(objectMapper.writeValueAsString(objResults.getBody()), new TypeReference<>() {});
     }
 }

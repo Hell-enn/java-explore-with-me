@@ -1,28 +1,18 @@
 package ru.practicum.explorewithme.events.mapper;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import ru.practicum.explorewithme.*;
 import ru.practicum.explorewithme.categories.dto.CategoryDto;
 import ru.practicum.explorewithme.categories.model.Category;
-import ru.practicum.explorewithme.categories.repository.CategoryRepository;
 import ru.practicum.explorewithme.events.dto.enums.State;
 import ru.practicum.explorewithme.events.dto.enums.StateAction;
-import ru.practicum.explorewithme.requests.dto.enums.Status;
 import ru.practicum.explorewithme.events.dto.*;
 import ru.practicum.explorewithme.events.dto.EndpointStatisticsDto;
 import ru.practicum.explorewithme.events.model.Event;
 import ru.practicum.explorewithme.events.model.Location;
-import ru.practicum.explorewithme.events.repository.LocationRepository;
-import ru.practicum.explorewithme.exceptions.NotFoundException;
-import ru.practicum.explorewithme.requests.repository.ParticipationRequestRepository;
 import ru.practicum.explorewithme.users.dto.UserShortDto;
 import ru.practicum.explorewithme.users.model.User;
-import ru.practicum.explorewithme.users.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,30 +24,10 @@ import java.util.Map;
 @Component
 public class EventMapper {
 
-    private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
-    private final ParticipationRequestRepository participationRequestRepository;
-    private final LocationRepository locationRepository;
-    private final StatsClient statsClient;
-    private final ObjectMapper objectMapper;
-
-    public Event newEventDtoToEvent(NewEventDto newEventDto, Long userId) {
-
-        Long catId = newEventDto.getCategory();
-        Category category = categoryRepository
-                .findById(catId)
-                .orElseThrow(() -> new NotFoundException("Категория с id = " + catId + " не найдена!"));
-
-        LocationDto locationDto = newEventDto.getLocation();
-        List<Location> locationList = locationRepository.findByLatAndLon(locationDto.getLat(), locationDto.getLon());
-        Location location =
-                !locationList.isEmpty() ?
-                        locationList.get(0) :
-                        locationRepository.save(new Location(null, locationDto.getLat(), locationDto.getLon()));
-
-        User user = userRepository
-                .findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден!"));
+    public Event newEventDtoToEvent(NewEventDto newEventDto,
+                                    Category category,
+                                    Location location,
+                                    User user) {
 
         Boolean paid = newEventDto.getPaid();
         Integer participantLimit = newEventDto.getParticipantLimit();
@@ -80,15 +50,11 @@ public class EventMapper {
         );
     }
 
-    public Event eventFullDtoToEvent(EventFullDto eventFullDto, Long userId) {
+    public Event eventFullDtoToEvent(EventFullDto eventFullDto, User user) {
 
         CategoryDto categoryDto = eventFullDto.getCategory();
         Category category = new Category(categoryDto.getId(), categoryDto.getName());
-
         LocationDto locationDto = eventFullDto.getLocation();
-        User user = userRepository
-                .findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден!"));
 
         return new Event(
                 eventFullDto.getId(),
@@ -108,12 +74,10 @@ public class EventMapper {
         );
     }
 
-    private EventFullDto eventToEventFullDto(Event event, Long views) {
+    private EventFullDto eventToEventFullDto(Event event, Long views, Long requestAmount) {
 
         Category category = event.getCategory();
         CategoryDto categoryDto = new CategoryDto(category.getId(), category.getName());
-
-        Long eventId = event.getId();
 
         User user = event.getUser();
         UserShortDto userShortDto = new UserShortDto(user.getId(), user.getName());
@@ -125,7 +89,7 @@ public class EventMapper {
                 event.getId(),
                 event.getAnnotation(),
                 categoryDto,
-                participationRequestRepository.findRequestAmount(eventId, Status.CONFIRMED.toString()),
+                requestAmount == null ? null : Math.toIntExact(requestAmount),
                 event.getCreatedOn(),
                 event.getDescription(),
                 event.getEventDate(),
@@ -143,14 +107,9 @@ public class EventMapper {
 
 
     @SneakyThrows
-    public EventFullDto eventToEventFullDto(Event event) {
-
-        LocalDateTime start = event.getPublishedOn() == null ? LocalDateTime.now() : event.getPublishedOn();
-        LocalDateTime end = event.getEventDate() == null ? LocalDateTime.now().plusYears(100) : event.getEventDate();
-
-        ResponseEntity<Object> objResults = statsClient.getPeriodUrisUniqueStats(start, end, List.of("/events/" + event.getId()), true);
-        List<EndpointStatisticsDto> endpointStatisticsDtos = objectMapper.readValue(
-                objectMapper.writeValueAsString(objResults.getBody()), new TypeReference<>() {});
+    public EventFullDto eventToEventFullDto(Event event,
+                                            List<EndpointStatisticsDto> endpointStatisticsDtos,
+                                            Long requestAmount) {
 
         EndpointStatisticsDto endpointStatisticsDto;
         if (endpointStatisticsDtos != null && !endpointStatisticsDtos.isEmpty())
@@ -158,16 +117,14 @@ public class EventMapper {
         else
             endpointStatisticsDto = new EndpointStatisticsDto("ewm-main-service", "/event/" + event.getId(), 0L);
         Long views = endpointStatisticsDto == null ? 0 : endpointStatisticsDto.getHits();
-        return eventToEventFullDto(event, views);
+        return eventToEventFullDto(event, views, requestAmount);
     }
 
 
-    public EventShortDto eventToEventShortDto(Event event, Long views) {
+    public EventShortDto eventToEventShortDto(Event event, Long views, Long requestAmount) {
 
         Category category = event.getCategory();
         CategoryDto categoryDto = new CategoryDto(category.getId(), category.getName());
-
-        Long eventId = event.getId();
 
         User user = event.getUser();
         UserShortDto userShortDto = new UserShortDto(user.getId(), user.getName());
@@ -176,7 +133,7 @@ public class EventMapper {
                 event.getId(),
                 event.getAnnotation(),
                 categoryDto,
-                participationRequestRepository.findRequestAmount(eventId, Status.CONFIRMED.toString()),
+                requestAmount == null ? null : Math.toIntExact(requestAmount),
                 event.getEventDate(),
                 userShortDto,
                 event.getPaid(),
@@ -185,9 +142,12 @@ public class EventMapper {
         );
     }
 
-    public Event updateEventAdmin(UpdateEventAdminRequest updateEventAdminRequest, Event event) {
+    public Event updateEventAdmin(UpdateEventAdminRequest updateEventAdminRequest,
+                                  Event event,
+                                  Category category,
+                                  Location location) {
 
-        Event updatedEvent = updateEventCommon(updateEventAdminRequest, event);
+        Event updatedEvent = updateEventCommon(updateEventAdminRequest, event, category, location);
 
         String stateAction = updateEventAdminRequest.getStateAction();
         if (stateAction != null) {
@@ -201,9 +161,12 @@ public class EventMapper {
         return updatedEvent;
     }
 
-    public Event updateEventUser(UpdateEventUserRequest updateEventUserRequest, Event event) {
+    public Event updateEventUser(UpdateEventUserRequest updateEventUserRequest,
+                                 Event event,
+                                 Category category,
+                                 Location location) {
 
-        Event updatedEvent = updateEventCommon(updateEventUserRequest, event);
+        Event updatedEvent = updateEventCommon(updateEventUserRequest, event, category, location);
 
         String stateAction = updateEventUserRequest.getStateAction();
         if (stateAction != null) {
@@ -217,18 +180,16 @@ public class EventMapper {
     }
 
 
-    private Event updateEventCommon(UpdateEventCommonRequest updateEventCommonRequest, Event event) {
+    private Event updateEventCommon(UpdateEventCommonRequest updateEventCommonRequest,
+                                    Event event,
+                                    Category category,
+                                    Location location) {
         String annotation = updateEventCommonRequest.getAnnotation();
         if (annotation != null && annotation.length() >= 20 && annotation.length() <= 2000)
             event.setAnnotation(annotation);
 
-        Long catId = updateEventCommonRequest.getCategory();
-        if (catId != null) {
-            Category category = categoryRepository
-                    .findById(catId)
-                    .orElseThrow(() -> new NotFoundException("Категория с идентификатором " + catId + " не найдена!"));
+        if (category != null)
             event.setCategory(category);
-        }
 
         String description = updateEventCommonRequest.getDescription();
         if (description != null && description.length() >= 20 && description.length() <= 7000)
@@ -238,17 +199,8 @@ public class EventMapper {
         if (eventDate != null)
             event.setEventDate(eventDate);
 
-        LocationDto locationDto = updateEventCommonRequest.getLocation();
-        if (locationDto != null) {
-            Double lat = locationDto.getLat();
-            Double lon = locationDto.getLon();
-            List<Location> locations = locationRepository.findByLatAndLon(lat, lon);
-
-            if (locations.isEmpty())
-                event.setLocation(locationRepository.save(new Location(null, lat, lon)));
-            else
-                event.setLocation(locations.get(0));
-        }
+        if (location != null)
+            event.setLocation(location);
 
         Boolean paid = updateEventCommonRequest.getPaid();
         if (paid != null)
@@ -270,40 +222,37 @@ public class EventMapper {
     }
 
 
-    public List<EventShortDto> eventToEventShortDtoList(List<Event> events) {
+    public List<EventShortDto> eventToEventShortDtoList(List<Event> events,
+                                                        Map<Long, Long> requestAmount,
+                                                        List<EndpointStatisticsDto> endpointStatisticsDtos) {
 
-        Map<Long, Long> views = getViews(events);
+        Map<Long, Long> views = getViews(endpointStatisticsDtos);
 
         List<EventShortDto> eventShortDtos = new ArrayList<>();
-        events.forEach(event -> eventShortDtos.add(eventToEventShortDto(event, views.get(event.getId()))));
+        events.forEach(event ->
+                eventShortDtos.add(eventToEventShortDto(event, views.get(event.getId()), requestAmount.get(event.getId()))));
         return eventShortDtos;
     }
 
 
-    public List<EventFullDto> eventToEventFullDtoList(List<Event> events) {
+    public List<EventFullDto> eventToEventFullDtoList(List<Event> events,
+                                                      List<EndpointStatisticsDto> endpointStatisticsDtos,
+                                                      Map<Long, Long> requestAmounts) {
         List<EventFullDto> eventFullDtos = new ArrayList<>();
         if (events.isEmpty())
             return eventFullDtos;
 
-        Map<Long, Long> views = getViews(events);
-        events.forEach(event -> eventFullDtos.add(eventToEventFullDto(event, views.get(event.getId()))));
+        events.forEach(event -> eventFullDtos.add(
+                eventToEventFullDto(
+                        event,
+                        endpointStatisticsDtos,
+                        requestAmounts.getOrDefault(event.getId(), 0L))));
         return eventFullDtos;
     }
 
 
     @SneakyThrows
-    private Map<Long, Long> getViews(List<Event> events) {
-
-        LocalDateTime start = LocalDateTime.now().minusYears(100);
-        LocalDateTime end = LocalDateTime.now();
-
-        List<String> uris = new ArrayList<>();
-        events.forEach(event -> uris.add("/events/" + event.getId()));
-
-        ResponseEntity<Object> objResults = statsClient.getPeriodUrisStats(start, end, uris);
-        List<EndpointStatisticsDto> endpointStatisticsDtos = objectMapper.readValue(
-                objectMapper.writeValueAsString(objResults.getBody()), new TypeReference<>() {});
-
+    private Map<Long, Long> getViews(List<EndpointStatisticsDto> endpointStatisticsDtos) {
         Map<Long, Long> views = new HashMap<>();
         endpointStatisticsDtos.forEach(endpointStatisticsDto -> {
             String uri = endpointStatisticsDto.getUri();
@@ -318,6 +267,4 @@ public class EventMapper {
         });
         return views;
     }
-
-
 }

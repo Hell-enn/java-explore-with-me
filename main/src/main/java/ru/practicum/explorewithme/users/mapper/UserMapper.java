@@ -6,7 +6,6 @@ import ru.practicum.explorewithme.users.dto.NewUserRequest;
 import ru.practicum.explorewithme.users.dto.UserDto;
 import ru.practicum.explorewithme.users.dto.UserShortDto;
 import ru.practicum.explorewithme.users.model.User;
-import ru.practicum.explorewithme.users.repository.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +13,6 @@ import java.util.List;
 @AllArgsConstructor
 @Component
 public class UserMapper {
-
-    private final UserRepository userRepository;
 
     public User newUserRequestToUser(NewUserRequest newUserRequest) {
         return new User(null, newUserRequest.getEmail(), newUserRequest.getName());

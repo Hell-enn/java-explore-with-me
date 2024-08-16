@@ -3,6 +3,7 @@ package ru.practicum.explorewithme.requests.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.requests.dto.ParticipationRequestDto;
 import ru.practicum.explorewithme.events.dto.enums.State;
 import ru.practicum.explorewithme.requests.dto.enums.Status;
@@ -30,6 +31,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
     private final ParticipationRequestMapper participationRequestMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
         userRepository
                 .findById(userId)
@@ -47,6 +49,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
 
     @Override
+    @Transactional
     public ParticipationRequestDto postUserRequest(Long userId, Long eventId) {
         User user = userRepository
                 .findById(userId)
@@ -86,6 +89,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
 
     @Override
+    @Transactional
     public ParticipationRequestDto cancelUserParticipationRequest(Long userId, Long requestId) {
         userRepository
                 .findById(userId)

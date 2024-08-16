@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 import ru.practicum.explorewithme.categories.dto.CategoryDto;
 import ru.practicum.explorewithme.categories.dto.NewCategoryDto;
 import ru.practicum.explorewithme.categories.model.Category;
-import ru.practicum.explorewithme.categories.repository.CategoryRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +14,6 @@ import java.util.List;
 @Component
 @Slf4j
 public class CategoryMapper {
-
-    private final CategoryRepository categoryRepository;
 
     public Category newCategoryDtoToCategory(NewCategoryDto newCategoryDto) {
         return new Category(null, newCategoryDto.getName());

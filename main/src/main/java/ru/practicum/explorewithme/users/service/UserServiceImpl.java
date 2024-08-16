@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.users.dto.NewUserRequest;
 import ru.practicum.explorewithme.users.dto.UserDto;
 import ru.practicum.explorewithme.exceptions.ConflictException;
@@ -23,6 +24,8 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
+    @Override
+    @Transactional
     public UserDto addUser(NewUserRequest newUserRequest) {
         List<User> userWithSameEmail = userRepository.findByEmail(newUserRequest.getEmail());
         if (!userWithSameEmail.isEmpty())
@@ -35,6 +38,8 @@ public class UserServiceImpl implements UserService {
         return userDto;
     }
 
+    @Override
+    @Transactional
     public void deleteUser(Long userId) {
         userRepository
                 .findById(userId)
@@ -44,6 +49,8 @@ public class UserServiceImpl implements UserService {
         log.debug("Удаление информации о пользователе с id ={} прошло успешно!", userId);
     }
 
+    @Override
+    @Transactional(readOnly = true)
     public List<UserDto> getUsers(Integer from, Integer size, List<Long> ids) {
         int amountOfUsers = userRepository.findAmount();
         int pageNum = amountOfUsers > from ? from / size : 0;

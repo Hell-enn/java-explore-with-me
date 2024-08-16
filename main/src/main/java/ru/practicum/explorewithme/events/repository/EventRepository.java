@@ -19,6 +19,14 @@ public interface EventRepository extends PagingAndSortingRepository<Event, Long>
                     "order by c.compilation_id", nativeQuery = true)
     List<Event> findEventsByCompilation(Long compId);
 
+    @Query(value = "select e.* " +
+            "from events e " +
+            "join compilations_events ce on e.event_id = ce.event_id " +
+            "join compilations c on ce.compilation_id = c.compilation_id " +
+            "where c.compilation_id in ?1 " +
+            "order by c.compilation_id", nativeQuery = true)
+    List<Event> findEventsByCompilations(List<Long> compIds);
+
     @Query(value = "select e.event_id " +
             "from events e " +
             "join compilations_events ce on e.event_id = ce.event_id " +

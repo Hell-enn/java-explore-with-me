@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.categories.dto.CategoryDto;
 import ru.practicum.explorewithme.categories.dto.NewCategoryDto;
 import ru.practicum.explorewithme.categories.mapper.CategoryMapper;
@@ -33,6 +34,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     public void deleteCategory(Long catId) {
         categoryRepository.findById(catId).orElseThrow(
                 () -> new NotFoundException("Категория события с id = " + catId + " не найдена!"));
@@ -46,6 +48,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     public CategoryDto patchCategory(Long catId, NewCategoryDto newCategoryDto) {
         Category category = categoryRepository.findById(catId).orElseThrow(
                 () -> new NotFoundException("Категория события с id = " + catId + " не найдена!"));
@@ -63,6 +66,7 @@ public class CategoryServiceImpl implements CategoryService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<CategoryDto> getCategories(Integer from, Integer size) {
         int amountOfRequests = categoryRepository.findAmount();
         int pageNum = amountOfRequests > from ? from / size : 0;
@@ -79,6 +83,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CategoryDto getCategory(Long catId) {
         Category category = categoryRepository.findById(catId).orElseThrow(
                 () -> new NotFoundException("Категория события с id = " + catId + " не найдена!"));
