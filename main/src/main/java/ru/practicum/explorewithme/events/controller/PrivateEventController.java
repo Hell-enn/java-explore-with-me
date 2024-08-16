@@ -36,16 +36,17 @@ public class PrivateEventController {
     @PostMapping
     public ResponseEntity<Object> postEvent(@Valid @RequestBody NewEventDto newEventDto,
                                             @PathVariable Long userId) {
-        log.debug("Принят запрос на публикацию пользователем с id = {} события:" +
-                        "\n\tаннотация: {}" +
-                        "\n\tкатегория: {}" +
-                        "\n\tописание: {}" +
-                        "\n\tдата события: {}" +
-                        "\n\tлокация: {}" +
-                        "\n\tфлаг оплаты: {}" +
-                        "\n\tмаксимальное количество участников: {}" +
-                        "\n\tфлаг премодерации: {}" +
-                        "\n\tзаголовок: {}",
+        log.debug("""
+                        Принят запрос на публикацию пользователем с id = {} события:
+                        \tаннотация: {}
+                        \tкатегория: {}
+                        \tописание: {}
+                        \tдата события: {}
+                        \tлокация: {}
+                        \tфлаг оплаты: {}
+                        \tмаксимальное количество участников: {}
+                        \tфлаг премодерации: {}
+                        \tзаголовок: {}""",
                 userId,
                 newEventDto.getAnnotation(),
                 newEventDto.getCategory(),
@@ -77,17 +78,18 @@ public class PrivateEventController {
     public ResponseEntity<Object> patchEvent(@PathVariable Long userId,
                                              @PathVariable Long eventId,
                                              @Valid @RequestBody UpdateEventUserRequest updateEventUserRequest) {
-        log.debug("Принят запрос на обновление пользователем с id = {} события с id = {} объектом:" +
-                        "\n\tаннотация: {}" +
-                        "\n\tкатегория: {}" +
-                        "\n\tописание: {}" +
-                        "\n\tдата события: {}" +
-                        "\n\tлокация: {}" +
-                        "\n\tфлаг оплаты: {}" +
-                        "\n\tмаксимальное число участников: {}" +
-                        "\n\tфлаг необходимости модерации: {}" +
-                        "\n\tзаголовок: {}" +
-                        "\n\tдействие: {}",
+        log.debug("""
+                        Принят запрос на обновление пользователем с id = {} события с id = {} объектом:
+                        \tаннотация: {}
+                        \tкатегория: {}
+                        \tописание: {}
+                        \tдата события: {}
+                        \tлокация: {}
+                        \tфлаг оплаты: {}
+                        \tмаксимальное число участников: {}
+                        \tфлаг необходимости модерации: {}
+                        \tзаголовок: {}
+                        \tдействие: {}""",
                 userId, eventId,
                 updateEventUserRequest.getAnnotation(),
                 updateEventUserRequest.getCategory(),
@@ -121,9 +123,10 @@ public class PrivateEventController {
     public ResponseEntity<Object> patchUserEventRequest(@PathVariable Long userId,
                                                         @PathVariable Long eventId,
                                                         @Valid @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
-        log.debug("Принят запрос на обновление пользователем с id = {} статусов запросов на участие в событии с id = {}." +
-                        "\nсписок запросов = {}" +
-                        "\nстатус обновления = {}",
+        log.debug("""
+                        Принят запрос на обновление пользователем с id = {} статусов запросов на участие в событии с id = {}.
+                        список запросов = {}
+                        статус обновления = {}""",
                 userId, eventId,
                 eventRequestStatusUpdateRequest.getRequestIds(),
                 eventRequestStatusUpdateRequest.getStatus());

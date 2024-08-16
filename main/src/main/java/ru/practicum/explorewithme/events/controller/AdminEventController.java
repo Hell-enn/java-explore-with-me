@@ -31,13 +31,14 @@ public class AdminEventController {
                                             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
                                             @RequestParam(defaultValue = "0") Integer from,
                                             @RequestParam(defaultValue = "10") Integer size) {
-        log.debug("Принят запрос на получение админом списка событий по параметрам:" +
-                "\n\tавторы: {}" +
-                "\n\tсостояния: {}" +
-                "\n\tкатегории: {}" +
-                "\n\tдата начала поиска: {}" +
-                "\n\tдата конца поиска: {}" +
-                "\nс позиции {} в количестве {}", users, states, categories, rangeStart, rangeEnd, from, size);
+        log.debug("""
+                Принят запрос на получение админом списка событий по параметрам:
+                \tавторы: {}
+                \tсостояния: {}
+                \tкатегории: {}
+                \tдата начала поиска: {}
+                \tдата конца поиска: {}
+                с позиции {} в количестве {}""", users, states, categories, rangeStart, rangeEnd, from, size);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -47,17 +48,18 @@ public class AdminEventController {
     @PatchMapping("/{eventId}")
     public ResponseEntity<Object> patchEvent(@PathVariable Long eventId,
                                              @Valid @RequestBody UpdateEventAdminRequest updateEventAdminRequest) {
-        log.debug("Принят запрос на обновление админом события с id = {} объектом:" +
-                "\n\tаннотация: {}" +
-                "\n\tкатегория: {}" +
-                "\n\tописание: {}" +
-                "\n\tдата события: {}" +
-                "\n\tлокация: {}" +
-                "\n\tфлаг оплаты: {}" +
-                "\n\tмаксимальное число участников: {}" +
-                "\n\tфлаг необходимости модерации: {}" +
-                "\n\tзаголовок: {}" +
-                "\n\tдействие: {}",
+        log.debug("""
+                        Принят запрос на обновление админом события с id = {} объектом:
+                        \tаннотация: {}
+                        \tкатегория: {}
+                        \tописание: {}
+                        \tдата события: {}
+                        \tлокация: {}
+                        \tфлаг оплаты: {}
+                        \tмаксимальное число участников: {}
+                        \tфлаг необходимости модерации: {}
+                        \tзаголовок: {}
+                        \tдействие: {}""",
                 eventId,
                 updateEventAdminRequest.getAnnotation(),
                 updateEventAdminRequest.getCategory(),

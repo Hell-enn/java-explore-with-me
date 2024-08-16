@@ -1,10 +1,8 @@
 package ru.practicum.explorewithme.compilations.mapper;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
-import ru.practicum.explorewithme.StatsClient;
 import ru.practicum.explorewithme.categories.dto.CategoryDto;
 import ru.practicum.explorewithme.categories.model.Category;
 import ru.practicum.explorewithme.compilations.dto.CompilationDto;
@@ -14,8 +12,6 @@ import ru.practicum.explorewithme.compilations.model.Compilation;
 import ru.practicum.explorewithme.events.model.Event;
 import ru.practicum.explorewithme.events.dto.EndpointStatisticsDto;
 import ru.practicum.explorewithme.events.dto.EventShortDto;
-import ru.practicum.explorewithme.events.repository.EventRepository;
-import ru.practicum.explorewithme.requests.repository.ParticipationRequestRepository;
 import ru.practicum.explorewithme.users.dto.UserShortDto;
 import ru.practicum.explorewithme.users.model.User;
 

@@ -112,7 +112,7 @@ public class CompilationServiceImpl implements CompilationService {
         endpointStatisticsDtos.forEach(endpointStatisticsDto -> {
             String uri = endpointStatisticsDto.getUri();
             if (uri != null && !uri.equals("[]")) {
-                Long eventId;
+                long eventId;
                 if (uri.startsWith("["))
                     uri = uri.substring(1);
                 if (uri.endsWith("]"))

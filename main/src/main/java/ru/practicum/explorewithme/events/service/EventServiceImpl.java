@@ -429,7 +429,7 @@ public class EventServiceImpl implements EventService {
 
         if (rangeEnd == null)
             rangeEnd = LocalDateTime.now().plusYears(100);
-Iterable<Event> test = eventRepository.findAll();
+
         int amountOfEvents = eventRepository
                 .findPublicEventsAmount(text, text, categories, paidList, rangeStart, rangeEnd);
         int pageNum = amountOfEvents > from ? from / size : 0;

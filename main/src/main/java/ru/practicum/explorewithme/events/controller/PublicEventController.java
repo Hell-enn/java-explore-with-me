@@ -34,15 +34,16 @@ public class PublicEventController {
                                                  @RequestParam(defaultValue = "0")Integer from,
                                                  @RequestParam(defaultValue = "10")Integer size,
                                                  HttpServletRequest request) {
-        log.debug("Принят запрос на получение списка событий по параметрам:" +
-                "\n\tподстрока: {}" +
-                "\n\tкатегории: {}" +
-                "\n\tфлаг оплаты: {}" +
-                "\n\tдата начала поиска: {}" +
-                "\n\tдата конца поиска: {}" +
-                "\n\tфлаг наличия свободных мест: {}" +
-                "\n\tсортировка по: {}" +
-                "\nс позиции {} в количестве {}",
+        log.debug("""
+                        Принят запрос на получение списка событий по параметрам:
+                        \tподстрока: {}
+                        \tкатегории: {}
+                        \tфлаг оплаты: {}
+                        \tдата начала поиска: {}
+                        \tдата конца поиска: {}
+                        \tфлаг наличия свободных мест: {}
+                        \tсортировка по: {}
+                        с позиции {} в количестве {}""",
                 text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size);
 
         return ResponseEntity

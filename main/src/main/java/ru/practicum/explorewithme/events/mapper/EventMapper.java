@@ -50,29 +50,6 @@ public class EventMapper {
         );
     }
 
-    public Event eventFullDtoToEvent(EventFullDto eventFullDto, User user) {
-
-        CategoryDto categoryDto = eventFullDto.getCategory();
-        Category category = new Category(categoryDto.getId(), categoryDto.getName());
-        LocationDto locationDto = eventFullDto.getLocation();
-
-        return new Event(
-                eventFullDto.getId(),
-                eventFullDto.getAnnotation(),
-                category,
-                eventFullDto.getDescription(),
-                eventFullDto.getEventDate(),
-                eventFullDto.getCreatedOn(),
-                eventFullDto.getPublishedOn(),
-                new Location(null, locationDto.getLat(), locationDto.getLon()),
-                eventFullDto.getPaid(),
-                eventFullDto.getParticipantLimit(),
-                eventFullDto.getRequestModeration(),
-                user,
-                eventFullDto.getTitle(),
-                State.valueOf(eventFullDto.getState().toUpperCase())
-        );
-    }
 
     private EventFullDto eventToEventFullDto(Event event, Long views, Long requestAmount) {
 

@@ -24,9 +24,10 @@ public class AdminUserController {
 
     @PostMapping
     public ResponseEntity<Object> postUser(@Valid @RequestBody NewUserRequest newUserRequest) {
-        log.debug("Принят запрос на публикация нового пользователя:" +
-                "\n\temail: {}," +
-                "\n\tname: {}",
+        log.debug("""
+                        Принят запрос на публикация нового пользователя:
+                        \temail: {},
+                        \tname: {}""",
                 newUserRequest.getEmail(), newUserRequest.getName());
         if (newUserRequest.getName().trim().isEmpty())
             throw new BadRequestException("Вы передали пустое имя пользователя!");
