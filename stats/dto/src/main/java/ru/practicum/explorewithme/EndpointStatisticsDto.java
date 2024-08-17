@@ -1,9 +1,8 @@
 package ru.practicum.explorewithme;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-
-import javax.validation.constraints.NotNull;
 
 /**
  * Модель данных статистической информации о запросах к определенным эндпоинтам

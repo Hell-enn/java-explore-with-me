@@ -2,6 +2,8 @@ package ru.practicum.explorewithme.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -37,9 +39,9 @@ public class StatsController {
      * или код ответа, отличный от 2**, с описанием причины возникновения ошибки)
      */
     @PostMapping("/hit")
-    public ResponseEntity<HitDto> postHit(@RequestBody HitDto hitDto) {
+    public ResponseEntity<Object> postHit(@RequestBody HitDto hitDto) {
         log.debug("Принят запрос на добавление информации о запросе о мероприятии\n{}", hitDto);
-        return ResponseEntity.accepted().body(hitService.postHit(hitDto));
+        return new ResponseEntity<>(hitService.postHit(hitDto), HttpStatus.CREATED);
     }
 
 
@@ -61,12 +63,13 @@ public class StatsController {
      * с описанием причины возникновения ошибки)
      */
     @GetMapping("/stats")
-    public ResponseEntity<Object> getStats(@RequestParam String start,
-                                           @RequestParam String end,
+    public ResponseEntity<Object> getStats(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") String start,
+                                           @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") String end,
                                            @RequestParam(required = false) List<String> uris,
                                            @RequestParam(required = false, defaultValue = "false") Boolean unique) {
         log.debug("Принят запрос на получение статистики запросов на получение информации о мероприятиях\n" +
                 "start: {}\nend: {}\nuris: {}\nunique: {}", start, end, uris, unique);
-        return ResponseEntity.ok().body(hitService.getStatistics(start, end, uris, unique));
+
+        return new ResponseEntity<>(hitService.getStatistics(start, end, uris, unique), HttpStatus.OK);
     }
 }

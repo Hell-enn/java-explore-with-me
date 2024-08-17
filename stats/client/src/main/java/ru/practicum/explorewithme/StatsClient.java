@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -28,17 +28,17 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
  *      formatter - объект класса DateTimeFormatter, используемый для преобразования объектов
  *  типа LocalDateTime к строке.
  */
+@Service
 public class StatsClient {
-
     protected final RestTemplate rest;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Autowired
-    public StatsClient(@Value("${explorewithme-server.url}") String serverUrl, RestTemplateBuilder builder) {
+    public StatsClient(RestTemplateBuilder builder) {
         rest = builder
-                        .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
-                        .requestFactory(HttpComponentsClientHttpRequestFactory::new)
-                        .build();
+                .uriTemplateHandler(new DefaultUriBuilderFactory("http://stats-server:9090"))
+                .requestFactory(ClientHttpRequestFactory.class)
+                .build();
     }
 
 
@@ -103,11 +103,12 @@ public class StatsClient {
                 "end", end.format(formatter),
                 "uris", uris
         );
+
         return makeAndSendRequest(
-                                HttpMethod.GET,
-                                "/stats?start={start}&end={end}&uris={uris}",
-                                parameters,
-                                null);
+                HttpMethod.GET,
+                "/stats?start={start}&end={end}&uris={uris}",
+                parameters,
+                null);
     }
 
 
@@ -126,7 +127,7 @@ public class StatsClient {
      * @return ResponseEntity<Object> - ответ сервера, содержащий либо код ответа 2** и
      * объект со статистической информацией, либо иной код ответа с сообщением об ошибке.
      */
-    public ResponseEntity<Object> getPeriodUrisUniqueStats(LocalDateTime start, LocalDateTime end, String[] uris, Boolean unique) {
+    public ResponseEntity<Object> getPeriodUrisUniqueStats(LocalDateTime start, LocalDateTime end, List<String> uris, Boolean unique) {
 
         Map<String, Object> parameters = Map.of(
                 "start", start.format(formatter),
@@ -135,10 +136,10 @@ public class StatsClient {
                 "unique", unique
         );
         return makeAndSendRequest(
-                                HttpMethod.GET,
-                                "/stats?start={start}&end={end}&uris={uris}&unique={unique}",
-                                parameters,
-                                null);
+                HttpMethod.GET,
+                "/stats?start={start}&end={end}&uris={uris}&unique={unique}",
+                parameters,
+                null);
     }
 
 
@@ -163,10 +164,10 @@ public class StatsClient {
                 "unique", unique
         );
         return makeAndSendRequest(
-                                HttpMethod.GET,
-                                "/stats?start={start}&end={end}&unique={unique}",
-                                parameters,
-                                null);
+                HttpMethod.GET,
+                "/stats?start={start}&end={end}&unique={unique}",
+                parameters,
+                null);
     }
 
 

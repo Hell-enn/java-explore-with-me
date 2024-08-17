@@ -1,3 +1,3 @@
-FROM amazoncorretto:11-alpine-jdk
+FROM amazoncorretto:21-alpine-jdk
 COPY server/target/*.jar stats.jar
 ENTRYPOINT ["java","-jar","/stats.jar"]
