@@ -1,16 +1,11 @@
 package ru.practicum.explorewithme.compilations.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.explorewithme.StatsClient;
 import ru.practicum.explorewithme.compilations.dto.CompilationDto;
 import ru.practicum.explorewithme.compilations.dto.NewCompilationDto;
 import ru.practicum.explorewithme.compilations.dto.RequestAmountDto;
@@ -27,9 +22,11 @@ import ru.practicum.explorewithme.exceptions.BadRequestException;
 import ru.practicum.explorewithme.exceptions.ConflictException;
 import ru.practicum.explorewithme.exceptions.NotFoundException;
 import ru.practicum.explorewithme.requests.repository.ParticipationRequestRepository;
+import ru.practicum.explorewithme.utils.UtilService;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,8 +38,115 @@ public class CompilationServiceImpl implements CompilationService {
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
     private final ParticipationRequestRepository participationRequestRepository;
-    private final StatsClient statsClient;
-    private final ObjectMapper objectMapper;
+    private final UtilService utilService;
+
+
+    private List<EventCompilation> getEventCompilations(List<Compilation> compilations) {
+        List<Long> compIds = new ArrayList<>();
+        compilations.forEach(compilation -> {
+            Long id = compilation.getId();
+            if (compIds.contains(id))
+                compIds.add(id);
+        });
+        return eventCompilationRepository.findEventCompilationsByCompIds(compIds);
+    }
+
+
+    private Map<Long, Long> getEventCompilationPairs(List<EventCompilation> eventCompilations) {
+        return eventCompilations
+                .stream()
+                .filter(eventCompilation ->
+                        eventCompilation.getEvent() != null && eventCompilation.getCompilation() != null)
+                .collect(Collectors.toMap(eventCompilation -> eventCompilation.getEvent().getId(),
+                        eventCompilation -> eventCompilation.getCompilation().getId(),
+                        (existing, replacement) -> existing,
+                        HashMap::new));
+    }
+
+
+    private Map<Long, RequestAmountDto> getRequestAmountMap(List<Long> eventIds) {
+        List<RequestAmountDto> requestAmountDtos = participationRequestRepository.findRequestAmount(eventIds);
+        return requestAmountDtos
+                .stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        RequestAmountDto::getEventId,
+                        requestAmountDto -> requestAmountDto,
+                        (existing, replacement) -> existing,
+                        HashMap::new
+                ));
+    }
+
+
+    private Map<Long, List<EndpointStatisticsDto>> getEndpointStatisticsDtoMap(
+                                                        List<EndpointStatisticsDto> endpointStatisticsDtos,
+                                                        Map<Long, Long> eventCompilationPairs) {
+
+        Map<Long, List<EndpointStatisticsDto>> endpointStatisticsDtoMap = new HashMap<>();
+
+        endpointStatisticsDtos
+                .stream()
+                .filter(endpointStatisticsDto -> endpointStatisticsDto.getUri() != null &&
+                        !endpointStatisticsDto.getUri().equals("[]"))
+                .forEach(endpointStatisticsDto -> {
+                    long eventId;
+                    String uri = endpointStatisticsDto.getUri();
+                    if (uri.startsWith("["))
+                        uri = uri.substring(1);
+                    if (uri.endsWith("]"))
+                        uri = uri.substring(0, uri.length() - 1);
+                    if (!(uri.endsWith("/") || uri.endsWith("s"))) {
+                        eventId = Long.parseLong(uri.substring(uri.lastIndexOf("/") + 1));
+                    } else {
+                        eventId = 0L;
+                    }
+                    Long compId = eventCompilationPairs.get(eventId);
+                    List<EndpointStatisticsDto> endpointStatisticsDtoList =
+                            endpointStatisticsDtoMap.getOrDefault(compId, new ArrayList<>());
+                    if (!endpointStatisticsDtoList.contains(endpointStatisticsDto))
+                        endpointStatisticsDtoList.add(endpointStatisticsDto);
+                    endpointStatisticsDtoMap.put(compId, endpointStatisticsDtoList);
+                });
+        return endpointStatisticsDtoMap;
+    }
+
+
+    private Map<Long, List<RequestAmountDto>> getRequestAmountDtoMap(List<EventCompilation> eventCompilations,
+                                                                       Map<Long, List<Event>> eventsMap,
+                                                                       List<Long> eventIds,
+                                                                       Map<Long, RequestAmountDto> requestAmountMap,
+                                                                       List<Event> events) {
+
+        return eventCompilations
+                .stream()
+                .filter(eventCompilation -> eventCompilation.getCompilation() != null &&
+                        eventCompilation.getEvent() != null)
+                .collect(
+                        Collectors.toMap(
+                                eventCompilation -> eventCompilation.getCompilation().getId(),
+                                eventCompilation -> {
+                                    Long key = eventCompilation.getCompilation().getId();
+                                    List<Event> value = eventsMap.getOrDefault(key, new ArrayList<>());
+                                    Event eventToAdd = eventCompilation.getEvent();
+                                    if (!value.contains(eventToAdd))
+                                        value.add(eventToAdd);
+                                    eventsMap.put(key, value);
+
+                                    List<RequestAmountDto> requestAmountDtoEvents = new ArrayList<>();
+
+                                    value.forEach(val -> {
+                                        Long eventId = val.getId();
+                                        eventIds.add(eventId);
+                                        requestAmountDtoEvents.add(requestAmountMap.get(eventId));
+                                        if (!events.contains(val))
+                                            events.add(val);
+                                    });
+
+                                    return requestAmountDtoEvents;
+                                }
+                        ));
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -59,82 +163,33 @@ public class CompilationServiceImpl implements CompilationService {
 
         List<Compilation> compilations = compilationRepository.findByPinnedOrderById(pinnedList, page);
 
-        Map<Long, List<EndpointStatisticsDto>> endpointStatisticsDtoMap = new HashMap<>();
         Map<Long, List<Event>> eventsMap = new HashMap<>();
-        Map<Long, List<RequestAmountDto>> requestAmountDtoMap = new HashMap<>();
-
         List<Long> eventIds = new ArrayList<>();
         List<Event> events = new ArrayList<>();
-        List<Long> compIds = new ArrayList<>();
-        Map<Long, Long> eventCompilationPairs = new HashMap<>();
 
-        compilations.forEach(compilation -> compIds.add(compilation.getId()));
-        List<EventCompilation> eventCompilations = eventCompilationRepository.findEventCompilationsByCompIds(compIds);
-        eventCompilations.forEach(eventCompilation -> {
-            Long eventId = eventCompilation.getEvent().getId();
-            Long compId = eventCompilation.getCompilation().getId();
-            eventCompilationPairs.put(eventId, compId);
-        });
+        List<EventCompilation> eventCompilations = getEventCompilations(compilations);
+        Map<Long, Long> eventCompilationPairs = getEventCompilationPairs(eventCompilations);
+        Map<Long, RequestAmountDto> requestAmountMap = getRequestAmountMap(eventIds);
+        Map<Long, List<RequestAmountDto>> requestAmountDtoMap = getRequestAmountDtoMap(eventCompilations,
+                                                                                        eventsMap,
+                                                                                        eventIds,
+                                                                                        requestAmountMap,
+                                                                                        events);
 
-        Map<Long, RequestAmountDto> requestAmountMap = new HashMap<>();
-        List<RequestAmountDto> requestAmountDtos = participationRequestRepository.findRequestAmount(eventIds);
-        requestAmountDtos.forEach(requestAmountDto -> {
-            if (requestAmountDto != null)
-                requestAmountMap.put(requestAmountDto.getEventId(), requestAmountDto);
-        });
 
-        eventCompilations.forEach(eventCompilation -> {
-            Long key = eventCompilation.getCompilation().getId();
-            List<Event> value = eventsMap.getOrDefault(key, new ArrayList<>());
-            Event eventToAdd = eventCompilation.getEvent();
-            if (!value.contains(eventToAdd))
-                value.add(eventToAdd);
-            eventsMap.put(key, value);
+        List<EndpointStatisticsDto> endpointStatisticsDtos = utilService.getUniqueStats(
+                                                                    LocalDateTime.now().minusYears(100),
+                                                                    LocalDateTime.now().plusYears(100),
+                                                                    events);
 
-            List<RequestAmountDto> requestAmountDtoEvents = new ArrayList<>();
+        Map<Long, List<EndpointStatisticsDto>> endpointStatisticsDtoMap = getEndpointStatisticsDtoMap(
+                                                                                            endpointStatisticsDtos,
+                                                                                            eventCompilationPairs);
 
-            value.forEach(val -> {
-                Long eventId = val.getId();
-                eventIds.add(eventId);
-                requestAmountDtoEvents.add(requestAmountMap.get(eventId));
-                if (!events.contains(val))
-                    events.add(val);
-            });
-
-            requestAmountDtoMap.put(key, requestAmountDtoEvents);
-        });
-
-        List<EndpointStatisticsDto> endpointStatisticsDtos = getUniqueStats(
-                LocalDateTime.now().minusYears(100),
-                LocalDateTime.now().plusYears(100),
-                events);
-
-        endpointStatisticsDtos.forEach(endpointStatisticsDto -> {
-            String uri = endpointStatisticsDto.getUri();
-            if (uri != null && !uri.equals("[]")) {
-                long eventId;
-                if (uri.startsWith("["))
-                    uri = uri.substring(1);
-                if (uri.endsWith("]"))
-                    uri = uri.substring(0, uri.length() - 1);
-                if (!(uri.endsWith("/") || uri.endsWith("s"))) {
-                    eventId = Long.parseLong(uri.substring(uri.lastIndexOf("/") + 1));
-                } else {
-                    eventId = 0L;
-                }
-                Long compId = eventCompilationPairs.get(eventId);
-                List<EndpointStatisticsDto> endpointStatisticsDtoList = endpointStatisticsDtoMap.getOrDefault(compId, new ArrayList<>());
-                endpointStatisticsDtoList.add(endpointStatisticsDto);
-                endpointStatisticsDtoMap.put(compId, endpointStatisticsDtoList);
-            }
-        });
-
-        List<CompilationDto> compilationDtos = compilationMapper
-                .compilationToCompilationDtoList(
-                        compilations,
-                        endpointStatisticsDtoMap,
-                        eventsMap,
-                        requestAmountDtoMap);
+        List<CompilationDto> compilationDtos = compilationMapper.compilationToCompilationDtoList(compilations,
+                                                                                                 endpointStatisticsDtoMap,
+                                                                                                 eventsMap,
+                                                                                                 requestAmountDtoMap);
         log.debug("Возвращение  подборок с позиции {} в количестве {}:\n{}", from, size, compilationDtos);
 
         return compilationDtos;
@@ -149,7 +204,7 @@ public class CompilationServiceImpl implements CompilationService {
 
         List<Long> eventIds = eventRepository.findCompilationEventIds(compId);
         Iterable<Event> events = eventRepository.findAllById(eventIds);
-        List<EndpointStatisticsDto> endpointStatisticsDtos = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDtos = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 (List<Event>) events
@@ -203,7 +258,7 @@ public class CompilationServiceImpl implements CompilationService {
 
         List<EndpointStatisticsDto> endpointStatisticsDtos;
         if (eventsByIds != null) {
-            endpointStatisticsDtos = getUniqueStats(
+            endpointStatisticsDtos = utilService.getUniqueStats(
                             LocalDateTime.now().minusYears(100),
                             LocalDateTime.now().plusYears(100),
                             (List<Event>) eventsByIds);
@@ -279,7 +334,7 @@ public class CompilationServiceImpl implements CompilationService {
         Iterable<Event> events = existedEventIds != null && !existedEventIds.isEmpty() ?
                 eventRepository.findAllById(existedEventIds) : new ArrayList<>();
 
-        List<EndpointStatisticsDto> endpointStatisticsDtos = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDtos = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 (List<Event>) events
@@ -287,7 +342,6 @@ public class CompilationServiceImpl implements CompilationService {
 
         List<RequestAmountDto> requestAmountDtos =
                 participationRequestRepository.findRequestAmount(existedEventIds);
-
 
         CompilationDto compilationDto = compilationMapper.compilationToCompilationDto(
                 compilation,
@@ -297,16 +351,5 @@ public class CompilationServiceImpl implements CompilationService {
         log.debug("Обновление подборки событий прошло успешно!\n{}", compilationDto);
 
         return compilationDto;
-    }
-
-
-    @SneakyThrows
-    private List<EndpointStatisticsDto> getUniqueStats(LocalDateTime start, LocalDateTime end, List<Event> events) {
-        List<String> uris = new ArrayList<>();
-        events.forEach(event -> uris.add("/events/" + event.getId()));
-
-        ResponseEntity<Object> objResults = statsClient
-                .getPeriodUrisUniqueStats(start, end, uris, true);
-        return objectMapper.readValue(objectMapper.writeValueAsString(objResults.getBody()), new TypeReference<>() {});
     }
 }

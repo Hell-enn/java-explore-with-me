@@ -1,20 +1,14 @@
 package ru.practicum.explorewithme.events.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.explorewithme.*;
 import ru.practicum.explorewithme.categories.model.Category;
 import ru.practicum.explorewithme.categories.repository.CategoryRepository;
-import ru.practicum.explorewithme.compilations.dto.RequestAmountDto;
 import ru.practicum.explorewithme.events.dto.EndpointStatisticsDto;
 import ru.practicum.explorewithme.events.dto.enums.State;
 import ru.practicum.explorewithme.events.dto.enums.StateAction;
@@ -36,6 +30,7 @@ import ru.practicum.explorewithme.requests.model.ParticipationRequest;
 import ru.practicum.explorewithme.requests.repository.ParticipationRequestRepository;
 import ru.practicum.explorewithme.users.model.User;
 import ru.practicum.explorewithme.users.repository.UserRepository;
+import ru.practicum.explorewithme.utils.UtilService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -53,13 +48,11 @@ public class EventServiceImpl implements EventService {
     private final LocationRepository locationRepository;
     private final EventMapper eventMapper;
     private final ParticipationRequestMapper participationRequestMapper;
-    private final StatsClient statsClient;
-    private final ObjectMapper objectMapper;
+    private final UtilService utilService;
 
     @Override
     @Transactional(readOnly = true)
     public List<EventShortDto> getUserEvents(Long userId, Integer from, Integer size) {
-
         findUser(userId);
 
         int amountOfEvents = eventRepository.findUserEventsAmount(userId);
@@ -72,10 +65,14 @@ public class EventServiceImpl implements EventService {
 
         List<Event> events = eventRepository.findByUserIdOrderByEventDate(userId, page);
         List<Long> eventIds = new ArrayList<>();
-        events.forEach(event -> eventIds.add(event.getId()));
-        Map<Long, Long> requestAmounts = findRequestAmountList(eventIds);
+        events.forEach(event -> {
+            Long id = event.getId();
+            if (id != null)
+                eventIds.add(event.getId());
+        });
+        Map<Long, Long> requestAmounts = utilService.findRequestAmountList(eventIds);
 
-        List<EndpointStatisticsDto> endpointStatisticsDtos = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDtos = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 events
@@ -86,7 +83,6 @@ public class EventServiceImpl implements EventService {
                 userId, from, size, eventShortDtos);
 
         return eventShortDtos;
-
     }
 
 
@@ -103,7 +99,7 @@ public class EventServiceImpl implements EventService {
 
         Event newEvent = eventRepository.save(eventMapper.newEventDtoToEvent(newEventDto, category, location, user));
 
-        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDto = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 List.of(newEvent)
@@ -128,7 +124,7 @@ public class EventServiceImpl implements EventService {
         if (event == null)
             throw new NotFoundException("Событие с id = " + eventId + " пользователя с id = " + userId + " не найдено!");
 
-        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDto = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 List.of(event)
@@ -145,7 +141,6 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventFullDto patchEventByUser(Long userId, Long eventId, UpdateEventUserRequest updateEventUserRequest) {
-
         findUser(userId);
 
         Event event = eventRepository.findByEventIdAndUserId(eventId, userId);
@@ -171,7 +166,7 @@ public class EventServiceImpl implements EventService {
         Event updatedEvent = eventRepository
                 .save(eventMapper.updateEventUser(updateEventUserRequest, event, category, location));
 
-        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDto = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 List.of(event)
@@ -188,7 +183,6 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public List<ParticipationRequestDto> getUserEventRequests(Long userId, Long eventId) {
-
         findUser(userId);
 
         Event event = eventRepository.findByEventIdAndUserId(eventId, userId);
@@ -202,7 +196,57 @@ public class EventServiceImpl implements EventService {
                 userId, eventId, participationRequestDtos);
 
         return participationRequestDtos;
+    }
 
+
+    private void updateRequestStatus(Status status, int idsToConfirm,
+                                     List<ParticipationRequest> existedParticipationRequests,
+                                     List<ParticipationRequestDto> confirmedRequests,
+                                     List<ParticipationRequestDto> rejectedRequests) {
+        if (status.equals(Status.CONFIRMED)) {
+            existedParticipationRequests
+                    .stream()
+                    .limit(idsToConfirm)
+                    .forEachOrdered(existedParticipationRequest -> {
+                        if (!existedParticipationRequest.getStatus().equals(Status.PENDING))
+                            throw new ConflictException("Статус заявки с id = " + existedParticipationRequest.getId() +
+                                    " нельзя изменить, так как на данный момент её статус - " +
+                                    existedParticipationRequest.getStatus());
+
+                        existedParticipationRequest.setStatus(Status.CONFIRMED);
+                        confirmedRequests
+                                .add(participationRequestMapper
+                                        .participationRequestToParticipationRequestDto(existedParticipationRequest));
+                    });
+
+            existedParticipationRequests
+                    .stream()
+                    .skip(idsToConfirm)
+                    .forEachOrdered(existedParticipationRequest -> {
+                        if (!existedParticipationRequest.getStatus().equals(Status.PENDING))
+                            throw new ConflictException("Статус заявки с id = " + existedParticipationRequest.getId() +
+                                    " нельзя изменить, так как на данный момент её статус - " +
+                                    existedParticipationRequest.getStatus());
+
+                        existedParticipationRequest.setStatus(Status.REJECTED);
+                        rejectedRequests
+                                .add(participationRequestMapper
+                                        .participationRequestToParticipationRequestDto(existedParticipationRequest));
+                    });
+        } else {
+            existedParticipationRequests
+                    .forEach(existedParticipationRequest -> {
+                        if (!existedParticipationRequest.getStatus().equals(Status.PENDING))
+                            throw new ConflictException("Статус заявки с id = " + existedParticipationRequest.getId() +
+                                    " нельзя изменить, так как на данный момент её статус - " +
+                                    existedParticipationRequest.getStatus());
+
+                        existedParticipationRequest.setStatus(status);
+                        rejectedRequests
+                                .add(participationRequestMapper
+                                        .participationRequestToParticipationRequestDto(existedParticipationRequest));
+                    });
+        }
     }
 
 
@@ -211,10 +255,7 @@ public class EventServiceImpl implements EventService {
     public EventRequestStatusUpdateResult patchUserEventRequest(Long userId,
                                                                 Long eventId,
                                                                 EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
-
-        userRepository
-                .findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден!"));
+        findUser(userId);
 
         Event event = eventRepository.findByEventIdAndUserId(eventId, userId);
         if (event == null)
@@ -239,51 +280,7 @@ public class EventServiceImpl implements EventService {
 
             int idsToConfirm = participationLimit - confirmedRequestsAmount;
 
-            if (status.equals(Status.CONFIRMED)) {
-                existedParticipationRequests
-                        .stream()
-                        .limit(idsToConfirm)
-                        .forEachOrdered(existedParticipationRequest -> {
-                            if (!existedParticipationRequest.getStatus().equals(Status.PENDING))
-                                throw new ConflictException("Статус заявки с id = " + existedParticipationRequest.getId() +
-                                        " нельзя изменить, так как на данный момент её статус - " +
-                                        existedParticipationRequest.getStatus());
-
-                            existedParticipationRequest.setStatus(Status.CONFIRMED);
-                            confirmedRequests
-                                    .add(participationRequestMapper
-                                            .participationRequestToParticipationRequestDto(existedParticipationRequest));
-                        });
-
-                existedParticipationRequests
-                        .stream()
-                        .skip(idsToConfirm)
-                        .forEachOrdered(existedParticipationRequest -> {
-                            if (!existedParticipationRequest.getStatus().equals(Status.PENDING))
-                                throw new ConflictException("Статус заявки с id = " + existedParticipationRequest.getId() +
-                                        " нельзя изменить, так как на данный момент её статус - " +
-                                        existedParticipationRequest.getStatus());
-
-                            existedParticipationRequest.setStatus(Status.REJECTED);
-                            rejectedRequests
-                                    .add(participationRequestMapper
-                                            .participationRequestToParticipationRequestDto(existedParticipationRequest));
-                        });
-            } else {
-                existedParticipationRequests
-                        .forEach(existedParticipationRequest -> {
-                            if (!existedParticipationRequest.getStatus().equals(Status.PENDING))
-                                throw new ConflictException("Статус заявки с id = " + existedParticipationRequest.getId() +
-                                        " нельзя изменить, так как на данный момент её статус - " +
-                                        existedParticipationRequest.getStatus());
-
-                            existedParticipationRequest.setStatus(status);
-                            rejectedRequests
-                                    .add(participationRequestMapper
-                                            .participationRequestToParticipationRequestDto(existedParticipationRequest));
-                        });
-            }
-
+            updateRequestStatus(status, idsToConfirm, existedParticipationRequests, confirmedRequests, rejectedRequests);
             participationRequestRepository.saveAll(existedParticipationRequests);
         }
 
@@ -336,12 +333,12 @@ public class EventServiceImpl implements EventService {
         List<Long> eventIds = new ArrayList<>();
         events.forEach(event -> eventIds.add(event.getId()));
 
-        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDto = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 events
         );
-        Map<Long, Long> requestAmount = findRequestAmountList(eventIds);
+        Map<Long, Long> requestAmount = utilService.findRequestAmountList(eventIds);
 
         List<EventFullDto> eventFullDtos = eventMapper.eventToEventFullDtoList(events, endpointStatisticsDto, requestAmount);
         log.debug("Возвращение списка событий пользователей с id = {} в состояниях {} категорий {} с момента {} до момента " +
@@ -384,7 +381,7 @@ public class EventServiceImpl implements EventService {
                 .save(eventMapper
                         .updateEventAdmin(updateEventAdminRequest, event, category, location));
 
-        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDto = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 List.of(event)
@@ -396,6 +393,43 @@ public class EventServiceImpl implements EventService {
         log.debug("Обновление события с id = {} прошло успешно!\n{}", eventId, eventFullDto);
 
         return eventFullDto;
+    }
+
+
+    private List<Event> findEventsDueToSort(String text,
+                                            List<Long> categories,
+                                            List<Boolean> paidList,
+                                            LocalDateTime rangeStart,
+                                            LocalDateTime rangeEnd,
+                                            String sort,
+                                            Pageable page) {
+        List<Event> events;
+        switch (sort.toUpperCase()) {
+            case "EVENT_DATE": {
+                events = eventRepository.findPublicEventsWithSortingByEventDate(text,
+                        text,
+                        categories,
+                        paidList,
+                        rangeStart,
+                        rangeEnd,
+                        page);
+                break;
+            }
+            case "VIEWS": {
+                events = eventRepository.findPublicEvents(text, text, categories, paidList, rangeStart, rangeEnd, page);
+                break;
+            }
+            default: {
+                events = eventRepository.findPublicEventsWithSortingByEventId(text,
+                        text,
+                        categories,
+                        paidList,
+                        rangeStart,
+                        rangeEnd,
+                        page);
+            }
+        }
+        return events;
     }
 
 
@@ -439,41 +473,16 @@ public class EventServiceImpl implements EventService {
                 .toOptional()
                 .orElseThrow(() -> new RuntimeException("Ошибка преобразования страницы!"));
 
-        List<Event> events;
-        switch (sort.toUpperCase()) {
-            case "EVENT_DATE": {
-                events = eventRepository.findPublicEventsWithSortingByEventDate(text,
-                                                                                text,
-                                                                                categories,
-                                                                                paidList,
-                                                                                rangeStart,
-                                                                                rangeEnd,
-                                                                                page);
-                break;
-            }
-            case "VIEWS": {
-                events = eventRepository.findPublicEvents(text, text, categories, paidList, rangeStart, rangeEnd, page);
-                break;
-            }
-            default: {
-                events = eventRepository.findPublicEventsWithSortingByEventId(text,
-                                                                              text,
-                                                                              categories,
-                                                                              paidList,
-                                                                              rangeStart,
-                                                                              rangeEnd,
-                                                                              page);
-            }
-        }
+        List<Event> events = findEventsDueToSort(text, categories, paidList, rangeStart, rangeEnd, sort, page);
 
-        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDto = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 events
         );
         List<Long> eventIds = new ArrayList<>();
         events.forEach(event -> eventIds.add(event.getId()));
-        Map<Long, Long> requestAmounts = findRequestAmountList(eventIds);
+        Map<Long, Long> requestAmounts = utilService.findRequestAmountList(eventIds);
 
         List<EventFullDto> eventFullDtos = eventMapper.eventToEventFullDtoList(events, endpointStatisticsDto, requestAmounts);
         if (onlyAvailable)
@@ -486,7 +495,7 @@ public class EventServiceImpl implements EventService {
         if (sort.equals("VIEWS"))
             eventFullDtos.sort(Comparator.comparing(EventFullDto::getViews));
 
-        statsClient.postHit(request.getRequestURI(), request.getRemoteAddr(), LocalDateTime.now());
+        utilService.postHit(request);
 
         log.debug("Возвращение списка событий по подстроке \"{}\" категорий {}, где флаг оплаты = {} и наличие " +
                 "свободных мест = {} с момента {} до момента {} с позиции {} в количестве {}:\n{}",
@@ -503,9 +512,9 @@ public class EventServiceImpl implements EventService {
                 .findPublicEvent(eventId, State.PUBLISHED.toString())
                 .orElseThrow(() -> new NotFoundException("Опубликованное событие с id = " + eventId + " не найдено!"));
 
-        statsClient.postHit(request.getRequestURI(), request.getRemoteAddr(), LocalDateTime.now());
+        utilService.postHit(request);
 
-        List<EndpointStatisticsDto> endpointStatisticsDto = getUniqueStats(
+        List<EndpointStatisticsDto> endpointStatisticsDto = utilService.getUniqueStats(
                 LocalDateTime.now().minusYears(100),
                 LocalDateTime.now().plusYears(100),
                 List.of(event)
@@ -544,26 +553,5 @@ public class EventServiceImpl implements EventService {
 
     private Integer findRequestAmount(Long eventId) {
         return participationRequestRepository.findRequestAmount(eventId, Status.CONFIRMED.toString());
-    }
-
-
-    private Map<Long, Long> findRequestAmountList(List<Long> eventIds) {
-        Map<Long, Long> requestAmounts = new HashMap<>();
-        List<RequestAmountDto> requestAmountDtos = participationRequestRepository.findRequestAmount(eventIds);
-        requestAmountDtos.forEach(requestAmountDto -> requestAmounts.put(
-                requestAmountDto.getEventId(),
-                requestAmountDto.getRequestAmount()));
-        return requestAmounts;
-    }
-
-
-    @SneakyThrows
-    private List<EndpointStatisticsDto> getUniqueStats(LocalDateTime start, LocalDateTime end, List<Event> events) {
-        List<String> uris = new ArrayList<>();
-        events.forEach(event -> uris.add("/events/" + event.getId()));
-
-        ResponseEntity<Object> objResults = statsClient
-                .getPeriodUrisUniqueStats(start, end, uris, true);
-        return objectMapper.readValue(objectMapper.writeValueAsString(objResults.getBody()), new TypeReference<>() {});
     }
 }
