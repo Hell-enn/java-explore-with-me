@@ -17,6 +17,7 @@ import ru.practicum.explorewithme.events.controller.AdminEventController;
 import ru.practicum.explorewithme.events.controller.PrivateEventController;
 import ru.practicum.explorewithme.events.controller.PublicEventController;
 import ru.practicum.explorewithme.requests.controller.PrivateParticipationRequestController;
+import ru.practicum.explorewithme.subscription.controller.SubscriptionController;
 import ru.practicum.explorewithme.users.controller.AdminUserController;
 
 import java.time.LocalDateTime;
@@ -26,7 +27,7 @@ import java.util.List;
                                          AdminEventController.class, PublicEventController.class,
                                          PrivateEventController.class, PrivateParticipationRequestController.class,
                                          AdminUserController.class, AdminCategoryController.class,
-                                         PublicCategoryController.class})
+                                         PublicCategoryController.class, SubscriptionController.class})
 public class ErrorHandler {
 
     @ExceptionHandler

@@ -126,4 +126,17 @@ public interface EventRepository extends PagingAndSortingRepository<Event, Long>
 
     @Query(value = "select * from events where event_id = ?1 and state ilike ?2", nativeQuery = true)
     Optional<Event> findPublicEvent(Long eventId, String state);
+
+    @Query(value = "select e.* " +
+            "from subscriptions s " +
+            "join events e on s.followed_id = e.user_id " +
+            "where s.follower_id = ?1 and e.state ilike 'PUBLISHED' " +
+            "order by e.published_on desc", nativeQuery = true)
+    List<Event> findFollowedUsersEvents(Long followerId, Pageable page);
+
+    @Query(value = "select count(*) " +
+            "from subscriptions s " +
+            "join events e on s.followed_id = e.user_id " +
+            "where s.follower_id = ?1 and e.state ilike 'PUBLISHED'", nativeQuery = true)
+    int findFollowedUsersEventsAmount(Long followerId);
 }

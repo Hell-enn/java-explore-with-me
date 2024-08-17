@@ -1,0 +1,752 @@
+{
+  "info": {
+    "_postman_id": "48d828d0-3ca8-412d-b356-7b572d0b7e5e",
+    "name": "Test Explore With Me - Additional service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "33242307"
+  },
+  "item": [
+    {
+      "name": "Добавление подписки несуществующим пользователем",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 404 status code and JSON-body\", function() {\r",
+              "    pm.response.to.be.notFound;\r",
+              "\tpm.response.to.be.withBody;\r",
+              "\tpm.response.to.be.json;\r",
+              "}); "
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/999/followed/5",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "999",
+            "followed",
+            "5"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Добавление подписки на несуществующего пользователя",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 404 status code and JSON-body\", function() {\r",
+              "    pm.response.to.be.notFound;\r",
+              "\tpm.response.to.be.withBody;\r",
+              "\tpm.response.to.be.json;\r",
+              "}); "
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/5/followed/999",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "5",
+            "followed",
+            "999"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Добавление подписки на самого себя",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 400 status code and JSON-body\", function() {\r",
+              "    pm.response.to.be.badRequest;\r",
+              "\tpm.response.to.be.withBody;\r",
+              "\tpm.response.to.be.json;\r",
+              "}); "
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/1/followed/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "1",
+            "followed",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Добавление новой подписки",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 201 status code and JSON-body\", function() {\r",
+              "    pm.expect(pm.response.code).to.equal(201);\r",
+              "    pm.response.to.be.withBody;\r",
+              "    pm.response.to.be.json;\r",
+              "});\r",
+              "\r",
+              "const target = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Subscription object should contain fields: id, follower, followed\", function () {\r",
+              "pm.expect(target).to.have.property('id');\r",
+              "pm.expect(target).to.have.property('follower');\r",
+              "pm.expect(target).to.have.property('followed');\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Request data should correspond response data\", function () {\r",
+              "    pm.expect(target.id).to.not.be.null;\r",
+              "    pm.expect(target.id).equal(1, 'new subscription id should be equal to 1');\r",
+              "    pm.expect(target.follower.id).equal(1, 'follower id in response body should be equal to the first path variable');\r",
+              "    pm.expect(target.followed.id).equal(9, 'followed id in response body should be equal to the second path variable');\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/1/followed/9",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "1",
+            "followed",
+            "9"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Добавление ответной подписки",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 201 status code and JSON-body\", function() {\r",
+              "    pm.expect(pm.response.code).to.equal(201);\r",
+              "    pm.response.to.be.withBody;\r",
+              "    pm.response.to.be.json;\r",
+              "});\r",
+              "\r",
+              "const target = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Subscription object should contain fields: id, follower, followed\", function () {\r",
+              "pm.expect(target).to.have.property('id');\r",
+              "pm.expect(target).to.have.property('follower');\r",
+              "pm.expect(target).to.have.property('followed');\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Request data should correspond response data\", function () {\r",
+              "    pm.expect(target.id).to.not.be.null;\r",
+              "    pm.expect(target.id.toString()).equal('2', 'new subscription id should be equal to 2');\r",
+              "    pm.expect(target.follower.id.toString()).equal('9', 'follower id in response body should be equal to the first path variable');\r",
+              "    pm.expect(target.followed.id.toString()).equal('1', 'followed id in response body should be equal to the second path variable');\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/9/followed/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "9",
+            "followed",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Добавление подписки повторно",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 409 status code and JSON-body\", function() {\r",
+              "    pm.expect(pm.response.code).to.equal(409);\r",
+              "\tpm.response.to.be.withBody;\r",
+              "\tpm.response.to.be.json;\r",
+              "}); "
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/9/followed/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "9",
+            "followed",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Удаление первой подписки",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 204 status code and JSON-body\", function() {\r",
+              "    pm.expect(pm.response.code).to.equal(204);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/1/followed/9",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "1",
+            "followed",
+            "9"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Удаление ответной подписки",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 204 status code and JSON-body\", function() {\r",
+              "    pm.expect(pm.response.code).to.equal(204);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/9/followed/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "9",
+            "followed",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Удаление несуществующей подписки",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 404 status code and JSON-body\", function() {\r",
+              "    pm.expect(pm.response.code).to.equal(404);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/3/followed/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "3",
+            "followed",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Получение перечня событий подписчиков несуществующего пользователя",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 404 status code and JSON-body\", function() {\r",
+              "    pm.response.to.be.notFound;\r",
+              "\tpm.response.to.be.withBody;\r",
+              "\tpm.response.to.be.json;\r",
+              "}); "
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/999?from=0&size=1000",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "999"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "0",
+              "description": "количество событий, которые нужно пропустить для формирования текущего набора"
+            },
+            {
+              "key": "size",
+              "value": "1000",
+              "description": "количество событий в наборе"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Добавление подписки 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 201 status code and JSON-body\", function() {\r",
+              "    pm.expect(pm.response.code).to.equal(201);\r",
+              "    pm.response.to.be.withBody;\r",
+              "    pm.response.to.be.json;\r",
+              "});\r",
+              "\r",
+              "const target = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Subscription object should contain fields: id, follower, followed\", function () {\r",
+              "pm.expect(target).to.have.property('id');\r",
+              "pm.expect(target).to.have.property('follower');\r",
+              "pm.expect(target).to.have.property('followed');\r",
+              "});\r",
+              " \r",
+              "pm.test(\"Request data should correspond response data\", function () {\r",
+              "    pm.expect(target.id).to.not.be.null;\r",
+              "    pm.expect(target.id).equal(3, 'new subscription id should be equal to 3');\r",
+              "    pm.expect(target.follower.id).equal(1, 'follower id in response body should be equal to the first path variable');\r",
+              "    pm.expect(target.followed.id).equal(2, 'followed id in response body should be equal to the second path variable');\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/1/followed/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "1",
+            "followed",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Добавление подписки 3",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 201 status code and JSON-body\", function() {\r",
+              "    pm.expect(pm.response.code).to.equal(201);\r",
+              "    pm.response.to.be.withBody;\r",
+              "    pm.response.to.be.json;\r",
+              "});\r",
+              "\r",
+              "const target = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Subscription object should contain fields: id, follower, followed\", function () {\r",
+              "pm.expect(target).to.have.property('id');\r",
+              "pm.expect(target).to.have.property('follower');\r",
+              "pm.expect(target).to.have.property('followed');\r",
+              "});\r",
+              " \r",
+              "pm.test(\"Request data should correspond response data\", function () {\r",
+              "    pm.expect(target.id).to.not.be.null;\r",
+              "    pm.expect(target.id).equal(4, 'new subscription id should be equal to 4');\r",
+              "    pm.expect(target.follower.id).equal(1, 'follower id in response body should be equal to the first path variable');\r",
+              "    pm.expect(target.followed.id).equal(3, 'followed id in response body should be equal to the second path variable');\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/1/followed/3",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "1",
+            "followed",
+            "3"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Получение перечня событий по подпискам без параметров",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 200 status code and JSON-body\", function() {\r",
+              "    pm.response.to.be.ok;\r",
+              "\tpm.response.to.be.withBody;\r",
+              "\tpm.response.to.be.json;\r",
+              "    const body = pm.response.json();\r",
+              "    pm.expect(body).is.an('array');\r",
+              "});\r",
+              " \r",
+              "const target = pm.response.json()[0];\r",
+              "\r",
+              "pm.test(\"Event should contain fields: id, title, annotation, category, paid, eventDate, initiator, views, confirmedRequests\", function () {\r",
+              "pm.expect(target).to.have.property('id');\r",
+              "pm.expect(target).to.have.property('title');\r",
+              "pm.expect(target).to.have.property('annotation');\r",
+              "pm.expect(target).to.have.property('category');\r",
+              "pm.expect(target).to.have.property('paid');\r",
+              "pm.expect(target).to.have.property('eventDate');\r",
+              "pm.expect(target).to.have.property('initiator');\r",
+              "pm.expect(target).to.have.property('views');\r",
+              "pm.expect(target).to.have.property('confirmedRequests');\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Получение перечня событий по подпискам с параметрами",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Response contains 200 status code and JSON-body\", function() {\r",
+              "    pm.response.to.be.ok;\r",
+              "\tpm.response.to.be.withBody;\r",
+              "\tpm.response.to.be.json;\r",
+              "    const body = pm.response.json();\r",
+              "    pm.expect(body).is.an('array');\r",
+              "}); \r",
+              "\r",
+              "const target = pm.response.json()[0];\r",
+              "\r",
+              "pm.test(\"Event should contain fields: id, title, annotation, category, paid, eventDate, initiator, views, confirmedRequests\", function () {\r",
+              "pm.expect(target).to.have.property('id');\r",
+              "pm.expect(target).to.have.property('title');\r",
+              "pm.expect(target).to.have.property('annotation');\r",
+              "pm.expect(target).to.have.property('category');\r",
+              "pm.expect(target).to.have.property('paid');\r",
+              "pm.expect(target).to.have.property('eventDate');\r",
+              "pm.expect(target).to.have.property('initiator');\r",
+              "pm.expect(target).to.have.property('views');\r",
+              "pm.expect(target).to.have.property('confirmedRequests');\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/subscriptions/follower/1?from=2&size=7",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "subscriptions",
+            "follower",
+            "1"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "2"
+            },
+            {
+              "key": "size",
+              "value": "7"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
