@@ -73,9 +73,9 @@ ___
 `GET   /compilations/{compId}` - получение подборки событий по его id.
 
 #### _Подписки на других пользователей_
-`POST   /subscriptions/follower/{followerId}/followed/{followedId}` - оформление подписки пользователем с id = followerId на пользователя с id = followedId.
-`DELETE   /subscriptions/follower/{followerId}/followed/{followedId}` - отмена подписки пользователем с id = followerId на пользователя с id = followedId.
-`GET   /subscriptions/follower/{followerId}` - получение списка событий пользователей, на которых подписан пользователь с id = followerId.
+`POST   /subscriptions/follower/{followerId}/followed/{followedId}` - оформление подписки пользователем с id = followerId на пользователя с id = followedId.  
+`DELETE   /subscriptions/follower/{followerId}/followed/{followedId}` - отмена подписки пользователем с id = followerId на пользователя с id = followedId.  
+`GET   /subscriptions/follower/{followerId}` - получение списка событий пользователей, на которых подписан пользователь с id = followerId.  
 
 ### **Административные**
 #### _Категории_
